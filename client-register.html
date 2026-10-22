@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f3">
+  <meta name="description" content="Activate your Zyma Systems client portal account">
+  <title>Activate Client Account · Zyma Systems</title>
+  <link rel="icon" type="image/png" href="assets/zyma-symbol.png">
+  <link rel="stylesheet" href="client-auth.css">
+</head>
+<body class="client-login-page client-register-page">
+  <main class="auth-shell">
+    <section class="auth-story" aria-label="Zyma Systems Client Portal">
+      <img class="auth-full-logo" src="assets/zyma-systems-logo-full.png" alt="Zyma Systems — Shaping ideas, Driving growth">
+      <div class="story-copy">
+        <span class="eyebrow">CLIENT ACCOUNT ACTIVATION</span>
+        <h1>Your workspace starts here.</h1>
+        <p>Activate your secure client account to follow application progress, review milestones and stay connected with the Zyma team.</p>
+      </div>
+      <div class="story-foot"><span>Development updates</span><span>·</span><span>Support and maintenance</span><span>·</span><span>Project visibility</span></div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-panel-inner register-panel-inner">
+        <img class="auth-symbol" src="assets/zyma-symbol.png" alt="Zyma Systems symbol">
+        <span class="eyebrow">GET STARTED</span>
+        <h2>Activate your account</h2>
+        <p class="muted">Open your invitation link, confirm your details and create your sign-in credentials.</p>
+        <form id="client-register-form" novalidate>
+          <label for="register-invite-code">Invitation code</label>
+          <input id="register-invite-code" name="inviteCode" type="text" required autocomplete="off" placeholder="Enter your invitation code" maxlength="120">
+          <label for="register-name">Full name</label>
+          <input id="register-name" name="name" type="text" required autocomplete="name" placeholder="Your full name" maxlength="100">
+          <label for="register-email">Work email address</label>
+          <input id="register-email" name="email" type="email" required autocomplete="email" placeholder="you@company.co.za" maxlength="190">
+          <label for="register-password">Create password</label>
+          <div class="password-wrap"><input id="register-password" name="password" type="password" required minlength="12" autocomplete="new-password" placeholder="At least 12 characters"><button class="show-password" type="button" data-toggle-password="register-password" aria-label="Show password">Show</button></div>
+          <p class="field-hint">Use at least 12 characters.</p>
+          <label for="register-confirm-password">Confirm password</label>
+          <div class="password-wrap"><input id="register-confirm-password" name="confirmPassword" type="password" required minlength="12" autocomplete="new-password" placeholder="Re-enter your password"><button class="show-password" type="button" data-toggle-password="register-confirm-password" aria-label="Show password">Show</button></div>
+          <div class="auth-message" id="register-message" role="status" aria-live="polite"></div>
+          <button class="primary-btn" type="submit"><span>Activate account</span><span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-help">Already activated your account? <a href="client-login.html">Sign in</a>.</p>
+        <div class="auth-secure"><span class="secure-dot"></span> Zyma Systems Client Portal · Account activation</div>
+      </div>
+    </section>
+  </main>
+  <script src="client-auth.js"></script>
+</body>
+</html>
