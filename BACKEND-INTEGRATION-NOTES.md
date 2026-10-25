@@ -12,7 +12,7 @@
 
 ## Not yet connected
 The current API does not expose these endpoints, so the frontend intentionally does not pretend they work:
-- Project development updates: `GET /portal/updates?projectId={projectId}`
+- Project development updates: `GET /portal/updates?projectId={projectId}` (frontend now calls this route, refreshes it every 60 seconds while visible, and sorts results newest-first; the API endpoint still must be implemented and deployed)
 - Support tickets: `GET/POST /support/tickets`
 - Client invitation activation: `POST /invitations/accept`
 - Password reset: `POST /auth/forgot-password` and `POST /auth/reset-password`

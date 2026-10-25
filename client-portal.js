@@ -3,7 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
-  const state = { user: null, project: null, projects: [], updates: [], tickets: [] };
+  const state = { user: null, project: null, projects: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, updateTimer: null };
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
       credentials: 'omit',
@@ -68,8 +68,8 @@
   }
   function renderUpdates() {
     const filter = $('#update-filter')?.value || 'all';
-    const visible = state.updates.filter(item => filter === 'all' || item.category === filter);
-    const markup = visible.length ? visible.map(item => `<article class="update-item"><span class="update-dot ${item.category==='Approval'?'green-dot':item.category==='Milestone'?'blue-dot':'orange-dot'}"></span><div><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.createdAt || item.date))}</time></div><p>${esc(item.body || item.message || '')}</p><span class="update-tag">${esc(item.category || 'Development')}</span></div></article>`).join('') : '<div class="empty-state">No project updates have been published.</div>';
+    const visible = state.updates.filter(item => filter === 'all' || String(item.category || 'Development').toLowerCase() === filter.toLowerCase());
+    const markup = visible.length ? visible.map(item => { const category = String(item.category || 'Development'); const dot = category.toLowerCase() === 'approval' ? 'green-dot' : category.toLowerCase() === 'milestone' ? 'blue-dot' : 'orange-dot'; return `<article class="update-item"><span class="update-dot ${dot}"></span><div><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.createdAt || item.createdAtUtc || item.date))}</time></div><p>${esc(item.body || item.message || item.description || '')}</p><span class="update-tag">${esc(category)}</span></div></article>`; }).join('') : `<div class="empty-state">${state.updatesError ? 'Development updates are temporarily unavailable. Please try again shortly.' : state.updatesLoading ? 'Loading published updates…' : 'No project updates have been published.'}</div>`;
     ['#overview-update-feed','#full-update-feed'].forEach(selector => { const el=$(selector); if(el) el.innerHTML=markup; });
   }
   function renderTickets() {
@@ -118,6 +118,50 @@
       setEmpty('#full-update-feed','No application is linked to this client account yet.');
     }
   }
+  async function loadProjectUpdates(projectId, { silent = false } = {}) {
+    if (!projectId) {
+      state.updates = [];
+      state.updatesError = false;
+      state.updatesLoading = false;
+      renderUpdates();
+      return;
+    }
+    if (!silent) {
+      state.updatesLoading = true;
+      state.updatesError = false;
+      renderUpdates();
+    }
+    try {
+      // Requires the protected API endpoint: GET /portal/updates?projectId={id}.
+      // The API must derive client scope from the authenticated user, not trust a client ID.
+      const result = await api(`/portal/updates?projectId=${encodeURIComponent(projectId)}`);
+      const items = Array.isArray(result) ? result : (result?.updates || result?.items || []);
+      state.updates = items.slice().sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.createdAtUtc || a.date || 0).getTime() || 0;
+        const dateB = new Date(b.createdAt || b.createdAtUtc || b.date || 0).getTime() || 0;
+        return dateB - dateA;
+      });
+      state.updatesError = false;
+    } catch (error) {
+      state.updatesError = true;
+      // Keep the last successful response during transient failures.
+      if (!silent && error.status === 404) {
+        console.warn('The API endpoint GET /portal/updates is not deployed yet.');
+      } else if (!silent) {
+        message(error.message || 'Could not load development updates.');
+      }
+    } finally {
+      state.updatesLoading = false;
+      renderUpdates();
+      const updateStatus = $('#portal-update-status');
+      if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}` : state.updatesError ? 'Updates unavailable' : 'No project updates yet')}`;
+      if (state.project) {
+        const buildUpdate = $('#portal-build-updated');
+        if (buildUpdate && state.updates.length) buildUpdate.textContent = `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}`;
+      }
+    }
+  }
+
   async function loadProjectDetails(projectId) {
     state.project = state.projects.find(project => String(project.id) === String(projectId)) || null;
     state.updates = [];
@@ -125,8 +169,7 @@
       const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones:[]}));
       state.project.milestones = Array.isArray(milestoneResult) ? milestoneResult : (milestoneResult.milestones || milestoneResult.items || []);
     }
-    // The current shared API does not yet expose /portal/updates.
-    state.updates = [];
+    await loadProjectUpdates(projectId);
     renderProject(state.project);
     renderMilestones(); renderUpdates();
   }
@@ -143,8 +186,7 @@
       hydrateUser(user);
       const projectResult = await api('/portal/projects');
       state.projects = Array.isArray(projectResult) ? projectResult : (projectResult.projects || projectResult.items || []);
-      // Updates and support-ticket endpoints are not implemented in the current
-      // API yet. Leave their UI in a clear, non-failing empty state.
+      // Support-ticket persistence remains a separate backend task.
       state.tickets = [];
       const selectorWrap = $('#project-selector-wrap');
       const selector = $('#portal-project-selector');
@@ -175,5 +217,16 @@
     sessionStorage.removeItem('zyma_portal_user');
     window.location.href='client-login.html';
   });
-  loadPortal();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
+  });
+  window.addEventListener('focus', () => {
+    if (state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
+  });
+  loadPortal().then(() => {
+    if (state.updateTimer) window.clearInterval(state.updateTimer);
+    state.updateTimer = window.setInterval(() => {
+      if (!document.hidden && state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
+    }, 60000);
+  });
 })();
