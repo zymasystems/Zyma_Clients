@@ -2,12 +2,12 @@
   'use strict';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za').replace(/\/$/, '');
+  const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
   const state = { user: null, project: null, projects: [], updates: [], tickets: [] };
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
-      credentials: 'include',
-      headers: { Accept: 'application/json', ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) },
+      credentials: 'omit',
+      headers: { Accept: 'application/json', ...(sessionStorage.getItem('zyma_portal_access_token') ? { Authorization: `Bearer ${sessionStorage.getItem('zyma_portal_access_token')}` } : {}), ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) },
       ...options
     });
     if (!response.ok) {
@@ -35,7 +35,7 @@
   function hydrateUser(user) {
     state.user = user || {};
     const name = String(state.user.name || state.user.fullName || state.user.email || 'Client user');
-    const company = String(state.user.organizationName || state.user.company || '');
+    const company = String(state.user.companyName || state.user.organizationName || state.user.company || '');
     const initials = name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part => part[0].toUpperCase()).join('') || 'CL';
     $$('.portal-user .avatar, .top-actions .avatar').forEach(el => { el.textContent = initials; });
     const nameEl = $('.portal-user strong'); if (nameEl) nameEl.textContent = name;
@@ -92,10 +92,12 @@
     const name = p?.name || p?.title || 'No application assigned';
     const code = p?.code || p?.reference || 'Not assigned';
     const lead = p?.managerName || p?.projectLead || p?.manager || 'Not assigned';
-    const progress = Math.max(0, Math.min(100, Number(p?.progress) || 0));
+    const rawMilestones = Array.isArray(p?.milestones) ? p.milestones : [];
+    const completedMilestones = rawMilestones.filter(m => ['done','completed','approved'].includes(String(m.status || '').toLowerCase())).length;
+    const progress = Math.max(0, Math.min(100, Number(p?.progress) || (rawMilestones.length ? Math.round(completedMilestones * 100 / rawMilestones.length) : 0)));
     const setText=(selector,value)=>{const el=$(selector);if(el)el.textContent=String(value);};
     setText('.project-banner h2',name);
-    setText('#portal-project-code',code); setText('#portal-project-lead',lead); setText('#portal-target-date',formatDate(p?.targetDate || p?.dueDate || p?.due));
+    setText('#portal-project-code',code); setText('#portal-project-lead',lead); setText('#portal-target-date',formatDate(p?.targetDate || p?.targetEndDateUtc || p?.dueDate || p?.due));
     setText('#portal-progress-ring',p?`${progress}%`:'—'); setText('#portal-progress-stat',p?`${progress}%`:'—');
     setText('#portal-progress-note',p?'Current recorded progress.':'Progress appears when a project is linked.');
     const bar=$('#portal-progress-bar'); if(bar)bar.style.width=`${p?progress:0}%`;
@@ -104,7 +106,7 @@
     const updateStatus = $('#portal-update-status'); if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].date)}` : 'No project updates yet')}`;
     setText('#portal-build-updated',p?.updatedAt?`Updated ${formatDate(p.updatedAt)}`:'No build update has been published.');
     setText('#portal-detail-name',name); setText('#portal-detail-code',code);
-    setText('#portal-detail-start',formatDate(p?.startDate)); setText('#portal-detail-due',formatDate(p?.targetDate || p?.dueDate || p?.due));
+    setText('#portal-detail-start',formatDate(p?.startDate || p?.startDateUtc)); setText('#portal-detail-due',formatDate(p?.targetDate || p?.targetEndDateUtc || p?.dueDate || p?.due));
     setText('#portal-detail-lead',lead); setText('#portal-detail-phase',p?.phase || p?.status || 'Not available');
     const status=$('#portal-project-status'); if(status)status.textContent=p?.status || 'No project linked';
     const scope=$('#portal-scope-list');
@@ -120,28 +122,30 @@
     state.project = state.projects.find(project => String(project.id) === String(projectId)) || null;
     state.updates = [];
     if (state.project && projectId && !Array.isArray(state.project.milestones)) {
-      const milestoneResult = await api(`/api/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones:[]}));
+      const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones:[]}));
       state.project.milestones = Array.isArray(milestoneResult) ? milestoneResult : (milestoneResult.milestones || milestoneResult.items || []);
     }
-    if (state.project && projectId) {
-      const updatesResult = await api(`/api/portal/updates?projectId=${encodeURIComponent(projectId)}`).catch(()=>({updates:[]}));
-      state.updates = Array.isArray(updatesResult) ? updatesResult : (updatesResult.updates || updatesResult.items || []);
-    }
+    // The current shared API does not yet expose /portal/updates.
+    state.updates = [];
     renderProject(state.project);
     renderMilestones(); renderUpdates();
   }
   async function loadPortal() {
     try {
-      const auth = await api('/api/auth/me');
+      // /portal/me is protected by [Authorize(Roles = "Client")]. A successful
+      // response is therefore the authorization check; its current payload
+      // does not include a role field.
+      const auth = await api('/portal/me');
       const user = auth?.user || auth;
-      if (!user || !String(user.role||'').toLowerCase().startsWith('client')) { window.location.replace('client-login.html'); return; }
+      if (!user || !(user.id || user.email || user.fullName)) {
+        throw new Error('The portal API returned an invalid client profile.');
+      }
       hydrateUser(user);
-      const [projectResult, ticketResult] = await Promise.all([
-        api('/api/portal/projects').catch(()=>({projects:[]})),
-        api('/api/support/tickets').catch(()=>({tickets:[]}))
-      ]);
+      const projectResult = await api('/portal/projects');
       state.projects = Array.isArray(projectResult) ? projectResult : (projectResult.projects || projectResult.items || []);
-      state.tickets = Array.isArray(ticketResult) ? ticketResult : (ticketResult.tickets || ticketResult.items || []);
+      // Updates and support-ticket endpoints are not implemented in the current
+      // API yet. Leave their UI in a clear, non-failing empty state.
+      state.tickets = [];
       const selectorWrap = $('#project-selector-wrap');
       const selector = $('#portal-project-selector');
       if (selector && selectorWrap) {
@@ -158,34 +162,17 @@
       message('Portal data could not be loaded. The shared API must be available before client data can be displayed.');
     }
   }
-  let toastTimer;
-  function openModal() { $('#request-feedback').textContent=''; $('#request-modal').hidden=false; document.body.classList.add('modal-open'); setTimeout(()=>$('#request-form select[name="type"]').focus(),30); }
-  function closeModal() { $('#request-modal').hidden=true; document.body.classList.remove('modal-open'); }
   $$('.portal-nav-item').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.section)));
   $$('[data-go]').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.go)));
-  $$('[data-open-request]').forEach(button=>button.addEventListener('click',openModal));
-  $('#close-request')?.addEventListener('click',closeModal); $('#cancel-request')?.addEventListener('click',closeModal);
-  $('#request-modal')?.addEventListener('click',e=>{if(e.target===$('#request-modal'))closeModal();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#request-modal')&&!$('#request-modal').hidden)closeModal();});
+  $$('[data-open-request]').forEach(button=>button.addEventListener('click',()=>{
+    message('Support requests are not connected to the API yet. Please contact your Zyma representative.');
+  }));
   $('#ticket-filter')?.addEventListener('change',renderTickets); $('#update-filter')?.addEventListener('change',renderUpdates);
-  $('#request-form')?.addEventListener('submit', async e=>{
-    e.preventDefault();
-    const form=e.currentTarget;
-    if(!form.reportValidity()) return;
-    const submit=form.querySelector('[type="submit"]'); const data=new FormData(form);
-    submit.disabled=true; setTextForRequest('Submitting…');
-    try {
-      const response=await fetch(`${API_BASE}/api/support/tickets`,{method:'POST',credentials:'include',headers:{Accept:'application/json'},body:data});
-      if(!response.ok) throw new Error(response.status===404?'Support requests are not connected yet. Please contact Zyma Systems directly.':'Your request could not be submitted. Please try again.');
-      const created=await response.json();
-      state.tickets.push(created.ticket || created);
-      renderTickets(); form.reset(); closeModal(); showSection('support'); message(`Support request ${created.reference || created.id || ''} submitted.`);
-    } catch(error) { $('#request-feedback').textContent=error.message || 'Support request could not be submitted.'; }
-    finally { submit.disabled=false; setTextForRequest('Submit request'); }
-  });
-  function setTextForRequest(text){const submit=$('#request-form [type="submit"]');if(submit)submit.textContent=text;}
+  // Support-ticket persistence is not implemented in the current API.
+  // The request form is intentionally not submitted until the endpoint exists.
   $('#client-menu')?.addEventListener('click',async()=>{
-    try { await api('/api/auth/logout',{method:'POST'}); } catch (_) {}
+    sessionStorage.removeItem('zyma_portal_access_token');
+    sessionStorage.removeItem('zyma_portal_user');
     window.location.href='client-login.html';
   });
   loadPortal();

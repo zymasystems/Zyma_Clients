@@ -7,20 +7,21 @@ Standalone client-facing frontend for GitHub Pages at `portal.zyma.co.za`.
 - `client-register.html`: invitation-based account activation.
 - `client-forgot-password.html`: request a password-reset email.
 - `client-reset-password.html`: set a new password from a single-use reset token.
-- `client-portal.html`: project overview, application details, published milestones, development updates, and support/maintenance requests.
+- `client-portal.html`: project overview, application details, and published milestones. Development updates and support tickets require additional backend endpoints.
 
 ## Shared API
-The frontend expects the shared ASP.NET Core API at `https://api.zyma.co.za` by default. Override it before the page scripts run with `window.ZYMA_PORTAL_CONFIG = { apiBaseUrl: "https://your-api-host" }`.
+The frontend defaults to the CRM API base `https://api.zyma.co.za/api/crm`. It uses the existing ASP.NET Core JWT login endpoint at `POST /auth/login` and keeps the bearer token in `sessionStorage` for the current browser tab only. Override it before the page scripts run with `window.ZYMA_PORTAL_CONFIG = { apiBaseUrl: "https://your-api-host" }`.
 
-Expected endpoints include:
-- `POST /api/auth/login` and `GET /api/auth/me`
-- `POST /api/auth/logout`
-- `POST /api/invitations/accept`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password`
-- `GET /api/portal/projects`
-- `GET /api/portal/updates?projectId={id}`
-- `GET/POST /api/support/tickets`
+Implemented endpoints used by this frontend:
+- `POST /auth/login`
+- `GET /portal/me`
+- `GET /portal/projects`
+- `GET /portal/projects/{id}/milestones`
+
+Planned endpoints not yet implemented:
+- Invitation activation and password reset
+- Project updates
+- Support ticket listing and submission
 
 The API must scope project, update and support-ticket results to the authenticated client's organization. Do not trust a client ID or organization name sent by the browser.
 
@@ -31,4 +32,4 @@ The API must scope project, update and support-ticket results to the authenticat
 4. Configure the API CORS allow-list to include `https://portal.zyma.co.za` and `https://crm.zyma.co.za`.
 
 ## Current integration state
-This repository contains frontend workflows only. Authentication, invitation verification, password reset, project data and support-ticket persistence require the API described above. The portal intentionally does not seed client identities, projects, progress, milestones, updates or tickets.
+The login and the client identity/project/approved-milestone views are wired to the current CRM API. Invitation activation, password reset, project updates and support-ticket persistence still require backend endpoints. The portal does not seed client identities, projects, progress, milestones, updates or tickets.

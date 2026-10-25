@@ -2,10 +2,10 @@
   'use strict';
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-  const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za').replace(/\/$/, '');
+  const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
-      credentials: 'include',
+      credentials: 'omit',
       headers: { Accept: 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) },
       ...options
     });
@@ -34,6 +34,8 @@
     button.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
   }));
 
+  const TOKEN_KEY = 'zyma_portal_access_token';
+  const USER_KEY = 'zyma_portal_user';
   const loginForm = $('#client-login-form');
   if (loginForm) loginForm.addEventListener('submit', async event => {
     event.preventDefault();
@@ -43,12 +45,19 @@
     submit.disabled = true;
     setMessage('login-message', '');
     try {
-      const result = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: String(data.get('email') || '').trim().toLowerCase(), password: String(data.get('password') || ''), audience: 'client_portal' }) });
-      const user = result?.user || result;
-      if (!user || !['client', 'client_admin', 'client_user'].includes(String(user.role || '').toLowerCase())) {
+      const result = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email: String(data.get('email') || '').trim().toLowerCase(), password: String(data.get('password') || '') }) });
+      const user = result?.user || result?.account || {};
+      const role = String(user.role || user.userRole || '').toLowerCase();
+      // The shared CRM API only issues JWTs to accounts that pass its own
+      // role/active-account checks. Still reject an explicitly non-client role,
+      // but tolerate responses that omit the optional user role field.
+      if (!result?.accessToken || (role && role !== 'client')) {
         setMessage('login-message', 'This account does not have client portal access. Contact your Zyma representative.');
         return;
       }
+      // Short-lived token is held only in this tab, never persistent localStorage.
+      sessionStorage.setItem(TOKEN_KEY, result.accessToken);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(user));
       window.location.href = 'client-portal.html';
     } catch (error) { setMessage('login-message', safeError(error)); }
     finally { submit.disabled = false; }
@@ -72,7 +81,7 @@
     submit.disabled = true;
     setMessage('register-message', '');
     try {
-      await api('/api/invitations/accept', { method: 'POST', body: JSON.stringify({
+      await api('/invitations/accept', { method: 'POST', body: JSON.stringify({
         token: String(data.get('inviteCode') || '').trim(),
         name: String(data.get('name') || '').trim(),
         email: String(data.get('email') || '').trim().toLowerCase(),
@@ -94,7 +103,7 @@
     submit.disabled = true;
     setMessage('reset-message', '');
     try {
-      await api('/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: String(data.get('email') || '').trim().toLowerCase(), audience: 'client_portal' }) });
+      await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: String(data.get('email') || '').trim().toLowerCase(), audience: 'client_portal' }) });
       setMessage('reset-message', 'If an eligible account exists, reset instructions will be sent to its email address.', true);
       resetForm.reset();
     } catch (error) { setMessage('reset-message', safeError(error)); }
@@ -113,7 +122,7 @@
     if (password !== confirm) { setMessage('new-password-message', 'The passwords do not match.'); return; }
     const submit = newPasswordForm.querySelector('[type="submit"]'); submit.disabled = true;
     try {
-      await api('/api/auth/reset-password', { method:'POST', body:JSON.stringify({ token, password, audience:'client_portal' }) });
+      await api('/auth/reset-password', { method:'POST', body:JSON.stringify({ token, password, audience:'client_portal' }) });
       setMessage('new-password-message', 'Your password has been updated. You can now sign in.', true);
       newPasswordForm.reset();
       window.setTimeout(()=>{ window.location.href='client-login.html'; }, 900);
