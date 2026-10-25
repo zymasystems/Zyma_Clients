@@ -69,7 +69,7 @@
   function renderUpdates() {
     const filter = $('#update-filter')?.value || 'all';
     const visible = state.updates.filter(item => filter === 'all' || String(item.category || 'Development').toLowerCase() === filter.toLowerCase());
-    const markup = visible.length ? visible.map(item => { const category = String(item.category || 'Development'); const dot = category.toLowerCase() === 'approval' ? 'green-dot' : category.toLowerCase() === 'milestone' ? 'blue-dot' : 'orange-dot'; return `<article class="update-item"><span class="update-dot ${dot}"></span><div><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.createdAt || item.createdAtUtc || item.date))}</time></div><p>${esc(item.body || item.message || item.description || '')}</p><span class="update-tag">${esc(category)}</span></div></article>`; }).join('') : `<div class="empty-state">${state.updatesError ? 'Development updates are temporarily unavailable. Please try again shortly.' : state.updatesLoading ? 'Loading published updates…' : 'No project updates have been published.'}</div>`;
+    const markup = visible.length ? visible.map(item => { const category = String(item.category || 'Development'); const dot = category.toLowerCase() === 'approval' ? 'green-dot' : category.toLowerCase() === 'milestone' ? 'blue-dot' : 'orange-dot'; return `<article class="update-item"><span class="update-dot ${dot}"></span><div><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.publishedAtUtc || item.publishedAt || item.createdAt || item.createdAtUtc || item.date))}</time></div><p>${esc(item.body || item.message || item.description || '')}</p><span class="update-tag">${esc(category)}</span></div></article>`; }).join('') : `<div class="empty-state">${state.updatesError ? 'Development updates are temporarily unavailable. Please try again shortly.' : state.updatesLoading ? 'Loading published updates…' : 'No project updates have been published.'}</div>`;
     ['#overview-update-feed','#full-update-feed'].forEach(selector => { const el=$(selector); if(el) el.innerHTML=markup; });
   }
   function renderTickets() {
@@ -103,7 +103,7 @@
     const bar=$('#portal-progress-bar'); if(bar)bar.style.width=`${p?progress:0}%`;
     const ring=$('.progress-ring'); if(ring)ring.setAttribute('aria-label',p?`Development progress ${progress} percent`:'No application assigned');
     setText('#portal-build-status',p?.buildStatus || p?.status || 'Not available');
-    const updateStatus = $('#portal-update-status'); if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].date)}` : 'No project updates yet')}`;
+    const updateStatus = $('#portal-update-status'); if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].publishedAtUtc || state.updates[0].publishedAt || state.updates[0].createdAt || state.updates[0].date)}` : 'No project updates yet')}`;
     setText('#portal-build-updated',p?.updatedAt?`Updated ${formatDate(p.updatedAt)}`:'No build update has been published.');
     setText('#portal-detail-name',name); setText('#portal-detail-code',code);
     setText('#portal-detail-start',formatDate(p?.startDate || p?.startDateUtc)); setText('#portal-detail-due',formatDate(p?.targetDate || p?.targetEndDateUtc || p?.dueDate || p?.due));
@@ -137,8 +137,8 @@
       const result = await api(`/portal/updates?projectId=${encodeURIComponent(projectId)}`);
       const items = Array.isArray(result) ? result : (result?.updates || result?.items || []);
       state.updates = items.slice().sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.createdAtUtc || a.date || 0).getTime() || 0;
-        const dateB = new Date(b.createdAt || b.createdAtUtc || b.date || 0).getTime() || 0;
+        const dateA = new Date(a.publishedAtUtc || a.publishedAt || a.createdAt || a.createdAtUtc || a.date || 0).getTime() || 0;
+        const dateB = new Date(b.publishedAtUtc || b.publishedAt || b.createdAt || b.createdAtUtc || b.date || 0).getTime() || 0;
         return dateB - dateA;
       });
       state.updatesError = false;
@@ -154,10 +154,10 @@
       state.updatesLoading = false;
       renderUpdates();
       const updateStatus = $('#portal-update-status');
-      if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}` : state.updatesError ? 'Updates unavailable' : 'No project updates yet')}`;
+      if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].publishedAtUtc || state.updates[0].publishedAt || state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}` : state.updatesError ? 'Updates unavailable' : 'No project updates yet')}`;
       if (state.project) {
         const buildUpdate = $('#portal-build-updated');
-        if (buildUpdate && state.updates.length) buildUpdate.textContent = `Updated ${formatDate(state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}`;
+        if (buildUpdate && state.updates.length) buildUpdate.textContent = `Updated ${formatDate(state.updates[0].publishedAtUtc || state.updates[0].publishedAt || state.updates[0].createdAt || state.updates[0].createdAtUtc || state.updates[0].date)}`;
       }
     }
   }

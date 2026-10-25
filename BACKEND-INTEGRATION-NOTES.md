@@ -10,9 +10,14 @@
 - The portal derives client scope on the server. The browser does not submit a client ID for authorization.
 - The portal accepts the current `/portal/me` response, which does not include a role field, because that endpoint itself is protected by the Client role.
 
+## Project development updates
+- `GET /portal/updates?projectId={projectId}` is implemented in the shared API.
+- The portal requests updates for the selected project, refreshes the feed every 60 seconds while the page is visible, and sorts updates by publication time (newest first).
+- The API returns only updates where `IsPublishedToClient == true` and verifies that the requested project belongs to the authenticated client's `ClientId`.
+- Staff must create a project update in the CRM and explicitly publish it before it appears in the client portal.
+- The portal displays the published timestamp (`PublishedAtUtc`) when supplied by the API.
+
 ## Not yet connected
-The current API does not expose these endpoints, so the frontend intentionally does not pretend they work:
-- Project development updates: `GET /portal/updates?projectId={projectId}` (frontend now calls this route, refreshes it every 60 seconds while visible, and sorts results newest-first; the API endpoint still must be implemented and deployed)
 - Support tickets: `GET/POST /support/tickets`
 - Client invitation activation: `POST /invitations/accept`
 - Password reset: `POST /auth/forgot-password` and `POST /auth/reset-password`
