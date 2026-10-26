@@ -3,7 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
-  const state = { user: null, project: null, projects: [], tasks: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, tasksError: false, updateTimer: null };
+  const state = { user: null, project: null, projects: [], tasks: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, milestonesError: false, tasksError: false, updateTimer: null };
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
       credentials: 'omit',
@@ -55,12 +55,16 @@
   function renderMilestones() {
     const project = state.project;
     const milestones = Array.isArray(project?.milestones) ? project.milestones : [];
-    const markup = milestones.length ? milestones.map((m,i) => {
+    const markup = state.milestonesError
+      ? '<div class="empty-state">Milestones could not be loaded. Please refresh the portal or contact Zyma support.</div>'
+      : milestones.length ? milestones.map((m,i) => {
       const status = String(m.status || 'Upcoming');
       const done = ['done','completed','approved'].includes(status.toLowerCase());
       const current = ['in progress','in review','current'].includes(status.toLowerCase());
-      return `<div class="roadmap-item ${done?'done':current?'current':'upcoming'}"><span class="roadmap-mark">${done?'✓':i+1}</span><div><strong>${esc(m.title || m.name || 'Milestone')}</strong><small>${esc(m.description || m.deliverable || '')}</small></div><span class="roadmap-status ${current?'in-progress':''}">${esc(status)}</span></div>`;
-    }).join('') : '<div class="empty-state">No milestones have been published for this application yet.</div>';
+      const targetDate = m.targetDateUtc || m.targetDate || m.dueDateUtc;
+      const details = [m.description || m.deliverable || '', targetDate ? `Target: ${formatDate(targetDate)}` : ''].filter(Boolean).join(' · ');
+      return `<div class="roadmap-item ${done?'done':current?'current':'upcoming'}"><span class="roadmap-mark">${done?'✓':i+1}</span><div><strong>${esc(m.title || m.name || 'Milestone')}</strong><small>${esc(details)}</small></div><span class="roadmap-status ${current?'in-progress':''}">${esc(status)}</span></div>`;
+    }).join('') : '<div class="empty-state">No milestones have been approved for client viewing yet.</div>';
     ['#overview-milestone-track','#full-milestone-track'].forEach(selector => { const el=$(selector); if(el) el.innerHTML=markup; });
     const completed = milestones.filter(m => ['done','completed','approved'].includes(String(m.status||'').toLowerCase())).length;
     const completedEl=$('#portal-milestones-completed'); if(completedEl) completedEl.textContent=String(completed);
@@ -210,9 +214,17 @@
   async function loadProjectDetails(projectId) {
     state.project = state.projects.find(project => String(project.id) === String(projectId)) || null;
     state.updates = [];
+    state.milestonesError = false;
     if (state.project && projectId) {
-      const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones: state.project?.milestones || []}));
-      state.project.milestones = Array.isArray(milestoneResult) ? milestoneResult : (milestoneResult.milestones || milestoneResult.items || []);
+      try {
+        const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`);
+        state.project.milestones = Array.isArray(milestoneResult) ? milestoneResult : (milestoneResult.milestones || milestoneResult.items || []);
+      } catch (error) {
+        state.milestonesError = true;
+        state.project.milestones = [];
+        if (error.status === 401) { window.location.replace('client-login.html'); return; }
+        console.error('Could not load client-visible project milestones:', error);
+      }
     }
     await Promise.all([loadProjectTasks(projectId, { silent: true }), loadProjectUpdates(projectId)]);
     // Refresh the selected project's summary from the API so task progress stays current.
