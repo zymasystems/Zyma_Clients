@@ -106,7 +106,7 @@
     setText('#portal-progress-ring',p?`${progress}%`:'—'); setText('#portal-progress-stat',p?`${progress}%`:'—');
     setText('#portal-progress-note',p?'Current recorded progress.':'Progress appears when a project is linked.');
     const bar=$('#portal-progress-bar'); if(bar)bar.style.width=`${p?progress:0}%`;
-    const ring=$('.progress-ring'); if(ring)ring.setAttribute('aria-label',p?`Development progress ${progress} percent`:'No application assigned');
+    const ring=$('.progress-ring'); if(ring){ring.style.setProperty('--progress',`${p?progress:0}%`);ring.setAttribute('aria-label',p?`Development progress ${progress} percent`:'No application assigned');}
     setText('#portal-build-status',p?.buildStatus || p?.status || 'Not available');
     const updateStatus = $('#portal-update-status'); if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].publishedAtUtc || state.updates[0].publishedAt || state.updates[0].createdAt || state.updates[0].date)}` : 'No project updates yet')}`;
     setText('#portal-build-updated',p?.updatedAt?`Updated ${formatDate(p.updatedAt)}`:'No build update has been published.');
