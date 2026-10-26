@@ -113,3 +113,46 @@ html[data-theme="light"] .project-banner{background:radial-gradient(ellipse at 8
 html[data-theme="dark"] .project-banner{background:radial-gradient(ellipse at 83% 15%,rgba(243,146,0,.13),transparent 30%),linear-gradient(115deg,#080808 0%,#151515 55%,#202020 100%)}
 @media(max-width:850px){.project-banner{grid-template-columns:minmax(0,1fr) 150px;gap:14px;padding:26px}.progress-orbit{width:122px;height:122px}.progress-ring{width:106px;height:106px}.progress-ring strong{font-size:26px}.banner-meta{gap:18px}}
 @media(max-width:600px){.project-banner{grid-template-columns:minmax(0,1fr);gap:22px;padding:23px 20px}.project-banner .banner-copy h2{font-size:27px}.project-banner .banner-description{margin-bottom:19px}.banner-progress{flex-direction:row;justify-content:flex-start;gap:14px}.progress-orbit{width:94px;height:94px;flex:0 0 94px}.progress-ring{width:80px;height:80px}.progress-ring:before{inset:5px}.progress-ring strong{font-size:21px}.progress-ring span{font-size:7px}.orbit-dot{top:4px}.progress-caption{font-size:8px}.banner-meta{gap:16px}.banner-meta>span{min-width:calc(50% - 16px)}}
+
+/* Zyma Systems task pins: cohesive brand styling with theme-aware surfaces */
+.task-pin,
+.task-pin.pin-variation-1,
+.task-pin.pin-variation-2,
+.task-pin.pin-variation-3{
+  --pin-bg:#fff;--pin-border:#dedfe3;--pin-top:#f28a28;--pin-ink:#111111;--pin-copy:#626774;--pin-rule:#e5e5e5;
+  background:var(--pin-bg);color:var(--pin-ink);border:1px solid var(--pin-border);border-top:3px solid var(--pin-top);
+  border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.07);transform:none;min-height:215px;padding:19px 18px 15px;
+}
+.task-pin:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.13)}
+.task-pin:before{width:34px;height:34px;top:15px;left:auto;right:15px;transform:none;border-radius:10px;background:#fff1df;color:#c85c00;box-shadow:none;content:none}
+.task-pin-head{display:none}
+.task-pin-topline{margin-bottom:20px;padding-right:43px;min-height:34px;align-items:center}
+.task-pin-category{color:var(--orange-dark);font-size:9px;letter-spacing:1.25px}
+.task-pin-icon{display:grid;place-items:center;position:absolute;right:16px;top:15px;width:34px;height:34px;border-radius:10px;background:#fff0df;color:#c65e00;font-size:19px;font-weight:800;border:1px solid #ffdfbb}
+.task-pin h3{color:var(--pin-ink);font-size:15px;line-height:1.4;margin-bottom:9px}
+.task-pin>p{color:var(--pin-copy);font-size:12px;line-height:1.7;margin-bottom:20px}
+.task-pin .task-no-description{color:var(--muted)}
+.task-pin-footer{border-color:var(--pin-rule);padding-top:13px}
+.task-pin-footer small{color:var(--pin-copy);font-size:10px}
+.task-pin .portal-task-badge{background:#f0f1f3;color:#424751;border:1px solid #e1e3e6;border-radius:20px;padding:5px 9px;font-size:10px}
+.task-pin .portal-task-badge.in-progress{background:#fff0df;color:#a84b00;border-color:#ffd5a8}
+.task-pin .portal-task-badge.in-review{background:#f0f0f0;color:#303030;border-color:#d7d7d7}
+.task-pin .portal-task-badge.blocked{background:#fff0ed;color:#a52d25;border-color:#f1c4bd}
+.task-pin-completed{--pin-bg:#f7fbf8;--pin-border:#cfe3d5;--pin-top:#248653;--pin-ink:#16271e;--pin-copy:#62766a;--pin-rule:#d7e5da;opacity:1;min-height:190px}
+.task-pin-completed .task-pin-icon{background:#e1f4e8;color:#187347;border-color:#c5e6d1}
+.task-pin-completed h3{text-decoration:line-through;text-decoration-color:#9bbda7}
+html[data-theme="dark"] .task-pin,
+html[data-theme="dark"] .task-pin.pin-variation-1,
+html[data-theme="dark"] .task-pin.pin-variation-2,
+html[data-theme="dark"] .task-pin.pin-variation-3{
+  --pin-bg:#171717;--pin-border:#353535;--pin-top:#f28a28;--pin-ink:#f7f7f7;--pin-copy:#c0c0c0;--pin-rule:#383838;
+  background:var(--pin-bg);color:var(--pin-ink);border-color:var(--pin-border);border-top-color:var(--pin-top);box-shadow:0 9px 25px rgba(0,0,0,.24)
+}
+html[data-theme="dark"] .task-pin-icon{background:#302113;color:#ffad4d;border-color:#60401f}
+html[data-theme="dark"] .task-pin .portal-task-badge{background:#292929;color:#ededed;border-color:#414141}
+html[data-theme="dark"] .task-pin .portal-task-badge.in-progress{background:#3a2817;color:#ffc27c;border-color:#65421f}
+html[data-theme="dark"] .task-pin .portal-task-badge.in-review{background:#292929;color:#f0f0f0;border-color:#444}
+html[data-theme="dark"] .task-pin .portal-task-badge.blocked{background:#3a211f;color:#ffb5ad;border-color:#65332e}
+html[data-theme="dark"] .task-pin-completed{--pin-bg:#17231b;--pin-border:#2d4b37;--pin-top:#39a56b;--pin-ink:#e8f5ec;--pin-copy:#b1c9b8;--pin-rule:#2d4634}
+html[data-theme="dark"] .task-pin-completed .task-pin-icon{background:#203b2a;color:#8fe0ad;border-color:#315b3f}
+@media(max-width:700px){.task-pin,.task-pin.pin-variation-1,.task-pin.pin-variation-2,.task-pin.pin-variation-3{min-height:175px;padding:17px 15px 14px;transform:none}.task-pin-topline{margin-bottom:15px}.task-pin-icon{top:13px;right:13px;width:32px;height:32px}}

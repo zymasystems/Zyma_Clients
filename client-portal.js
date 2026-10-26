@@ -141,13 +141,34 @@
       return;
     }
     const cssStatus = status => String(status || 'To Do').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
+    const taskIcons = ['⌘','✎','⌁','◇','▤','⚙','⌕','↗','◈','✦','▣','◎','⌬','◉','⊞','✧'];
+    const iconForTask = (task, index) => {
+      const text = `${task.title || ''} ${task.description || ''}`.toLowerCase();
+      const rules = [
+        [/design|wireframe|mockup|visual|brand|style/, '✎'],
+        [/test|qa|quality|browser|performance|bug/, '✓'],
+        [/deploy|launch|release|publish|hosting/, '↗'],
+        [/database|data|sql|api|backend|server/, '▤'],
+        [/security|auth|login|password|permission/, '◈'],
+        [/responsive|mobile|layout|css|interface|ui/, '▦'],
+        [/content|copy|image|portfolio|page/, '▧'],
+        [/repository|git|branch|version|commit/, '⌘'],
+        [/contact|form|email|message|support/, '✉'],
+        [/meeting|review|feedback|approval/, '◎'],
+        [/document|scope|requirement|specification/, '≡'],
+        [/integrat|connect|webhook|automation/, '⌁']
+      ];
+      const match = rules.find(([pattern]) => pattern.test(text));
+      return match ? match[1] : taskIcons[index % taskIcons.length];
+    };
     const card = (task, index, done=false) => {
       const status = String(task.status || (done ? 'Completed' : 'To Do'));
       const css = cssStatus(status);
       const due = task.dueDateUtc || task.dueDate ? `Due ${formatDate(task.dueDateUtc || task.dueDate)}` : '';
       const completedDate = task.completedAtUtc || task.completedAt || task.updatedAtUtc;
       const meta = done ? `Filed${completedDate ? ` ${formatDate(completedDate)}` : ''}` : (due || 'In the development queue');
-      return `<article class="task-pin ${done ? 'task-pin-completed' : ''} pin-variation-${index % 4}"><span class="task-pin-head" aria-hidden="true"></span><div class="task-pin-topline"><span class="task-pin-category">${done ? 'COMPLETED FILE' : 'DEVELOPMENT TASK'}</span><span class="task-pin-check" aria-hidden="true">${done ? '✓' : '↗'}</span></div><h3>${esc(task.title || 'Development task')}</h3>${task.description ? `<p>${esc(task.description)}</p>` : '<p class="task-no-description">A task tracked by your Zyma project team.</p>'}<div class="task-pin-footer"><span class="portal-task-badge ${esc(css)}">${esc(status)}</span><small>${esc(meta)}</small></div></article>`;
+      const icon = done ? '✓' : iconForTask(task, index);
+      return `<article class="task-pin ${done ? 'task-pin-completed' : ''} pin-variation-${index % 4}"><span class="task-pin-head" aria-hidden="true"></span><div class="task-pin-topline"><span class="task-pin-category">${done ? 'COMPLETED FILE' : 'DEVELOPMENT TASK'}</span><span class="task-pin-icon" aria-hidden="true">${icon}</span></div><h3>${esc(task.title || 'Development task')}</h3>${task.description ? `<p>${esc(task.description)}</p>` : '<p class="task-no-description">A task tracked by your Zyma project team.</p>'}<div class="task-pin-footer"><span class="portal-task-badge ${esc(css)}">${esc(status)}</span><small>${esc(meta)}</small></div></article>`;
     };
     const activeMarkup = active.length ? `<div class="pinboard-grid">${active.map((task,i)=>card(task,i)).join('')}</div>` : '<div class="empty-state board-empty compact-empty">Nothing currently pinned. Your active task board is clear.</div>';
     const completedMarkup = completed.length ? `<details class="completed-file"><summary><span class="file-folder-icon" aria-hidden="true">▰</span><span class="completed-file-copy"><strong>Completed</strong><small>${completed.length} task${completed.length===1?'':'s'} filed away</small></span><span class="completed-file-action">Open file <span aria-hidden="true">⌄</span></span></summary><div class="pinboard-grid completed-pinboard">${completed.map((task,i)=>card(task,i,true)).join('')}</div></details>` : `<div class="completed-file empty-file"><span class="file-folder-icon" aria-hidden="true">▱</span><span class="completed-file-copy"><strong>Completed</strong><small>Finished tasks will be filed here automatically.</small></span></div>`;
