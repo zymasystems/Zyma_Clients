@@ -3,7 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
-  const state = { user: null, project: null, projects: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, updateTimer: null };
+  const state = { user: null, project: null, projects: [], tasks: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, tasksError: false, updateTimer: null };
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
       credentials: 'omit',
@@ -94,7 +94,8 @@
     const lead = p?.managerName || p?.projectLead || p?.manager || 'Not assigned';
     const rawMilestones = Array.isArray(p?.milestones) ? p.milestones : [];
     const completedMilestones = rawMilestones.filter(m => ['done','completed','approved'].includes(String(m.status || '').toLowerCase())).length;
-    const progress = Math.max(0, Math.min(100, Number(p?.progress) || (rawMilestones.length ? Math.round(completedMilestones * 100 / rawMilestones.length) : 0)));
+    const apiProgress = p?.progressPercentage ?? p?.ProgressPercentage ?? p?.progress ?? p?.completionPercentage;
+    const progress = Math.max(0, Math.min(100, apiProgress !== undefined && apiProgress !== null && apiProgress !== '' ? Number(apiProgress) || 0 : (rawMilestones.length ? Math.round(completedMilestones * 100 / rawMilestones.length) : 0)));
     const setText=(selector,value)=>{const el=$(selector);if(el)el.textContent=String(value);};
     setText('.project-banner h2',name);
     setText('#portal-project-code',code); setText('#portal-project-lead',lead); setText('#portal-target-date',formatDate(p?.targetDate || p?.targetEndDateUtc || p?.dueDate || p?.due));
@@ -117,6 +118,50 @@
       setEmpty('#overview-update-feed','No application is linked to this client account yet.');
       setEmpty('#full-update-feed','No application is linked to this client account yet.');
     }
+  }
+  function renderTasks() {
+    const host = $('#portal-task-list');
+    const summary = $('#portal-task-summary');
+    if (!host) return;
+    const tasks = Array.isArray(state.tasks) ? state.tasks : [];
+    const completed = tasks.filter(t => String(t.status || '').toLowerCase() === 'completed').length;
+    if (summary) summary.textContent = `${completed} of ${tasks.length} tasks completed`;
+    if (state.tasksError) {
+      host.innerHTML = '<div class="empty-state">Development tasks are temporarily unavailable. Please try again shortly.</div>';
+      return;
+    }
+    if (!tasks.length) {
+      host.innerHTML = '<div class="empty-state">No development tasks have been recorded for this application yet.</div>';
+      return;
+    }
+    const rank = status => ({'in progress':1,'in review':2,'blocked':3,'to do':4,'completed':5}[String(status || '').toLowerCase()] || 6);
+    const ordered = tasks.slice().sort((a,b) => rank(a.status)-rank(b.status) || new Date(a.dueDateUtc || 0)-new Date(b.dueDateUtc || 0));
+    host.innerHTML = ordered.map(task => {
+      const status = String(task.status || 'To Do');
+      const css = status.toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
+      const due = task.dueDateUtc ? `Due ${formatDate(task.dueDateUtc)}` : 'No due date';
+      return `<article class="portal-task-row"><span class="portal-task-status ${esc(css)}" aria-label="${esc(status)}"></span><div class="portal-task-copy"><strong>${esc(task.title || 'Development task')}</strong>${task.description ? `<p>${esc(task.description)}</p>` : ''}<small>${esc(due)}${task.completedAtUtc ? ` · Completed ${esc(formatDate(task.completedAtUtc))}` : ''}</small></div><span class="portal-task-badge ${esc(css)}">${esc(status)}</span></article>`;
+    }).join('');
+  }
+  async function loadProjectTasks(projectId, { silent = false } = {}) {
+    if (!projectId) {
+      state.tasks = [];
+      state.tasksError = false;
+      renderTasks();
+      return;
+    }
+    try {
+      const result = await api(`/portal/projects/${encodeURIComponent(projectId)}/tasks`);
+      state.tasks = Array.isArray(result) ? result : (result?.tasks || result?.items || []);
+      state.tasksError = false;
+    } catch (error) {
+      state.tasksError = true;
+      if (!silent) {
+        if (error.status === 401) { window.location.replace('client-login.html'); return; }
+        message(error.message || 'Could not load development tasks.');
+      }
+    }
+    renderTasks();
   }
   async function loadProjectUpdates(projectId, { silent = false } = {}) {
     if (!projectId) {
@@ -165,13 +210,22 @@
   async function loadProjectDetails(projectId) {
     state.project = state.projects.find(project => String(project.id) === String(projectId)) || null;
     state.updates = [];
-    if (state.project && projectId && !Array.isArray(state.project.milestones)) {
-      const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones:[]}));
+    if (state.project && projectId) {
+      const milestoneResult = await api(`/portal/projects/${encodeURIComponent(projectId)}/milestones`).catch(()=>({milestones: state.project?.milestones || []}));
       state.project.milestones = Array.isArray(milestoneResult) ? milestoneResult : (milestoneResult.milestones || milestoneResult.items || []);
     }
-    await loadProjectUpdates(projectId);
+    await Promise.all([loadProjectTasks(projectId, { silent: true }), loadProjectUpdates(projectId)]);
+    // Refresh the selected project's summary from the API so task progress stays current.
+    if (projectId) {
+      const latest = await api(`/portal/projects/${encodeURIComponent(projectId)}`).catch(()=>null);
+      if (latest) {
+        const detail = latest.project || latest;
+        state.project = { ...state.project, ...detail, milestones: state.project?.milestones || [] };
+        state.projects = state.projects.map(item => String(item.id) === String(projectId) ? { ...item, ...detail } : item);
+      }
+    }
     renderProject(state.project);
-    renderMilestones(); renderUpdates();
+    renderMilestones(); renderTasks(); renderUpdates();
   }
   async function loadPortal() {
     try {
@@ -218,7 +272,7 @@
     window.location.href='client-login.html';
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
+    if (!document.hidden && state.project?.id) loadProjectDetails(state.project.id).catch(() => {});
   });
   window.addEventListener('focus', () => {
     if (state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
@@ -226,7 +280,7 @@
   loadPortal().then(() => {
     if (state.updateTimer) window.clearInterval(state.updateTimer);
     state.updateTimer = window.setInterval(() => {
-      if (!document.hidden && state.project?.id) loadProjectUpdates(state.project.id, { silent: true });
+      if (!document.hidden && state.project?.id) loadProjectDetails(state.project.id).catch(() => {});
     }, 60000);
   });
 })();

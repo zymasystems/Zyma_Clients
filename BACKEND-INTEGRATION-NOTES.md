@@ -6,6 +6,8 @@
 - Client identity: `GET /portal/me` (protected, Client role)
 - Client projects: `GET /portal/projects`
 - Approved milestones: `GET /portal/projects/{id}/milestones`
+- Client-safe development tasks: `GET /portal/projects/{id}/tasks` (project ownership is checked server-side; staff assignment and internal priority are not returned)
+- Project detail/progress: `GET /portal/projects/{id}`; the portal reads `progressPercentage` and refreshes the selected project, tasks, milestones and published updates approximately every 60 seconds while visible
 - Bearer token is stored in `sessionStorage` for the current tab and removed on sign-out.
 - The portal derives client scope on the server. The browser does not submit a client ID for authorization.
 - The portal accepts the current `/portal/me` response, which does not include a role field, because that endpoint itself is protected by the Client role.
