@@ -63,7 +63,7 @@
       const current = ['in progress','in review','current'].includes(status.toLowerCase());
       const targetDate = m.targetDateUtc || m.targetDate || m.dueDateUtc;
       const details = [m.description || m.deliverable || '', targetDate ? `Target: ${formatDate(targetDate)}` : ''].filter(Boolean).join(' · ');
-      return `<div class="roadmap-item ${done?'done':current?'current':'upcoming'}"><span class="roadmap-mark">${done?'✓':i+1}</span><div><strong>${esc(m.title || m.name || 'Milestone')}</strong><small>${esc(details)}</small></div><span class="roadmap-status ${current?'in-progress':''}">${esc(status)}</span></div>`;
+      return `<article class="roadmap-item ${done?'done':current?'current':'upcoming'}"><div class="roadmap-card"><span class="roadmap-phase">${done?'STAGE COMPLETE':current?'CURRENT STAGE':`STAGE ${String(i+1).padStart(2,'0')}`}</span><strong>${esc(m.title || m.name || 'Milestone')}</strong><small>${esc(details || 'Milestone details will be published by your project team.')}</small><span class="roadmap-status ${current?'in-progress':''}">${esc(status)}</span></div><span class="roadmap-mark">${done?'✓':i+1}</span></article>`;
     }).join('') : '<div class="empty-state">No milestones have been approved for client viewing yet.</div>';
     ['#overview-milestone-track','#full-milestone-track'].forEach(selector => { const el=$(selector); if(el) el.innerHTML=markup; });
     const completed = milestones.filter(m => ['done','completed','approved'].includes(String(m.status||'').toLowerCase())).length;
