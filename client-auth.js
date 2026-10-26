@@ -22,9 +22,11 @@
     const el = document.getElementById(id);
     if (el) { el.textContent = message; el.classList.toggle('success', success); }
   };
-  const safeError = error => error.status === 404 || error instanceof TypeError
-    ? 'Client portal access is not connected yet. Please try again once the shared API is available.'
-    : error.message || 'The request could not be completed. Please try again.';
+  const safeError = error => error instanceof TypeError
+    ? 'Could not reach the client portal API. Check the network connection and API CORS configuration, then try again.'
+    : error.status === 404
+      ? 'The client portal activation endpoint was not found. Please contact Zyma support.'
+      : error.message || 'The request could not be completed. Please try again.';
 
   document.querySelectorAll('[data-toggle-password]').forEach(button => button.addEventListener('click', () => {
     const input = document.getElementById(button.dataset.togglePassword);
@@ -81,7 +83,7 @@
     submit.disabled = true;
     setMessage('register-message', '');
     try {
-      await api('/invitations/accept', { method: 'POST', body: JSON.stringify({
+      await api('/client-invitations/accept', { method: 'POST', body: JSON.stringify({
         token: String(data.get('inviteCode') || '').trim(),
         name: String(data.get('name') || '').trim(),
         email: String(data.get('email') || '').trim().toLowerCase(),

@@ -32,3 +32,14 @@ The support buttons show an explanatory message until support-ticket persistence
 - Return only milestones with `IsApprovedForClientView == true`.
 - Never trust a client ID sent by the browser.
 - Do not store JWTs in `localStorage`; this frontend uses tab-scoped `sessionStorage`.
+
+
+## Client invitation activation endpoint
+
+The deployed CRM API exposes client invitation redemption at:
+
+`POST /api/crm/client-invitations/accept`
+
+The activation page's `client-auth.js` must use `/client-invitations/accept` relative to the configured API base (`https://api.zyma.co.za/api/crm`). The older `/invitations/accept` path does not match the API controller route.
+
+The activation email must match the email address stored on the CRM client record and invitation. Each activated account is linked to the invitation's `ClientId`; the portal must load project data from the authenticated `/portal/projects` API and must not use a hardcoded demo client or client ID.

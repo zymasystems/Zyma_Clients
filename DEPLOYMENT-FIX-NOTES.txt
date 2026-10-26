@@ -1,0 +1,15 @@
+Zyma Systems Client Portal — activation fix
+
+Change:
+- Corrected the activation request route in client-auth.js from /invitations/accept to /client-invitations/accept, matching the deployed ASP.NET API controller.
+- Improved activation error messages so a network/CORS failure is distinguished from an incorrect endpoint.
+- Documented the invitation email and client-specific project relationship.
+
+Deploy:
+1. Review the changed client-auth.js.
+2. Commit and push the contents of this folder to the Zyma_Clients GitHub Pages repository (do not upload the outer folder as a nested folder; its contents should remain at the repository root).
+3. Wait for GitHub Pages deployment and hard-refresh portal.zyma.co.za.
+4. Test with a fresh invitation. The entered email must match the invited CRM client's email.
+5. Verify login loads /portal/me and /portal/projects; the API must return only projects linked to the authenticated user's ClientId.
+
+This package fixes the confirmed frontend route mismatch. If activation still fails, inspect the browser Network panel for the response from POST https://api.zyma.co.za/api/crm/client-invitations/accept; CORS or API authorization/configuration may need separate changes.
