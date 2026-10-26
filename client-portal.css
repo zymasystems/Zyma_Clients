@@ -156,3 +156,69 @@ html[data-theme="dark"] .task-pin .portal-task-badge.blocked{background:#3a211f;
 html[data-theme="dark"] .task-pin-completed{--pin-bg:#17231b;--pin-border:#2d4b37;--pin-top:#39a56b;--pin-ink:#e8f5ec;--pin-copy:#b1c9b8;--pin-rule:#2d4634}
 html[data-theme="dark"] .task-pin-completed .task-pin-icon{background:#203b2a;color:#8fe0ad;border-color:#315b3f}
 @media(max-width:700px){.task-pin,.task-pin.pin-variation-1,.task-pin.pin-variation-2,.task-pin.pin-variation-3{min-height:175px;padding:17px 15px 14px;transform:none}.task-pin-topline{margin-bottom:15px}.task-pin-icon{top:13px;right:13px;width:32px;height:32px}}
+
+
+
+/* Milestone tracker responsive repair: respond to the card's width, not viewport width. */
+section.surface-card:has(>#full-milestone-track){container-type:inline-size;container-name:milestone-panel}
+#full-milestone-track{overflow:visible}
+#full-milestone-track:before{
+  background:#242424;
+  border:2px solid #414141;
+  box-shadow:inset 0 0 0 4px #111;
+}
+#full-milestone-track:after{border-left:3px dashed #f39200;opacity:1}
+#full-milestone-track .roadmap-item{min-width:0}
+#full-milestone-track .roadmap-card{min-width:0;overflow-wrap:anywhere}
+#full-milestone-track .roadmap-card small{overflow-wrap:anywhere}
+html[data-theme="light"] #full-milestone-track:before{
+  background:#242424;
+  border-color:#555;
+  box-shadow:inset 0 0 0 4px #111;
+}
+html[data-theme="light"] #full-milestone-track:after{border-left-color:#f39200}
+html[data-theme="light"] #full-milestone-track .roadmap-card{
+  background:#fff;
+  border-color:#dedede;
+  border-top-color:#f39200;
+  color:#171717;
+}
+html[data-theme="light"] #full-milestone-track .roadmap-card strong{color:#171717}
+html[data-theme="light"] #full-milestone-track .roadmap-card small{color:#626262}
+html[data-theme="light"] #full-milestone-track .roadmap-status{color:#666}
+html[data-theme="light"] #full-milestone-track .roadmap-mark{border-color:#fff}
+@container milestone-panel (max-width: 680px){
+  #full-milestone-track{padding:14px 0 18px;gap:18px}
+  #full-milestone-track:before{left:14px;top:0;bottom:0;width:42px}
+  #full-milestone-track:after{left:36px;top:12px;bottom:12px}
+  #full-milestone-track .roadmap-item{
+    grid-template-columns:72px minmax(0,1fr);
+    min-height:0;
+    gap:0;
+    align-items:center;
+  }
+  #full-milestone-track .roadmap-card,
+  #full-milestone-track .roadmap-item:nth-child(even) .roadmap-card{
+    grid-column:2;
+    grid-row:1;
+    padding:15px 14px;
+    transform:none;
+    width:auto;
+  }
+  #full-milestone-track .roadmap-card:after,
+  #full-milestone-track .roadmap-item:nth-child(even) .roadmap-card:after{
+    right:auto;left:-10px;width:10px;
+  }
+  #full-milestone-track .roadmap-mark{
+    grid-column:1;grid-row:1;justify-self:start;
+    width:34px;height:34px;margin-left:19px;
+    font-size:11px;
+  }
+  #full-milestone-track .roadmap-card strong{font-size:13px}
+  #full-milestone-track .roadmap-card small{font-size:11px;line-height:1.6}
+  #full-milestone-track .roadmap-status{font-size:9px;text-align:left}
+}
+@media(max-width:700px){
+  section.surface-card:has(>#full-milestone-track){min-width:0}
+  #full-milestone-track .roadmap-card{overflow-wrap:anywhere}
+}
