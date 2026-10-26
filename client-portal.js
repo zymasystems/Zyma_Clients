@@ -92,6 +92,7 @@
   }
   function renderProject(project) {
     state.project = project || null;
+    loadClientLogo();
     const p = state.project;
     const name = p?.name || p?.title || 'No application assigned';
     const code = p?.code || p?.reference || 'Not assigned';
@@ -111,6 +112,9 @@
     const updateStatus = $('#portal-update-status'); if (updateStatus) updateStatus.innerHTML = `<i></i> ${esc(state.updates.length ? `Updated ${formatDate(state.updates[0].publishedAtUtc || state.updates[0].publishedAt || state.updates[0].createdAt || state.updates[0].date)}` : 'No project updates yet')}`;
     setText('#portal-build-updated',p?.updatedAt?`Updated ${formatDate(p.updatedAt)}`:'No build update has been published.');
     setText('#portal-detail-name',name); setText('#portal-detail-code',code);
+    setText('#company-identity-subtitle', p?.clientName || p?.companyName || 'Your Zyma Systems project workspace');
+    setText('#company-reference-tag', `REF · ${code}`);
+    setText('#company-profile-status', p?.status || p?.phase || 'Planning');
     setText('#portal-detail-start',formatDate(p?.startDate || p?.startDateUtc)); setText('#portal-detail-due',formatDate(p?.targetDate || p?.targetEndDateUtc || p?.dueDate || p?.due));
     setText('#portal-detail-lead',lead); setText('#portal-detail-phase',p?.phase || p?.status || 'Not available');
     const status=$('#portal-project-status'); if(status)status.textContent=p?.status || 'No project linked';
@@ -297,6 +301,54 @@
       message('Portal data could not be loaded. The shared API must be available before client data can be displayed.');
     }
   }
+
+  // Company logo upload is stored locally in this browser until a server-side
+  // client-profile logo endpoint is available. Scope it to the signed-in client/project.
+  const logoInput = $('#client-logo-upload');
+  const logoImage = $('#client-company-logo');
+  const logoPlaceholder = $('#client-logo-placeholder');
+  const logoRemove = $('#client-logo-remove');
+  const logoNote = $('#client-logo-note');
+  const logoStorageKey = () => {
+    const identity = state.user?.id || state.user?.userId || state.user?.email || 'client';
+    const project = state.project?.id || state.project?.projectId || state.project?.code || 'application';
+    return `zyma-client-logo:${String(identity)}:${String(project)}`;
+  };
+  function showClientLogo(dataUrl) {
+    if (!logoImage || !logoPlaceholder) return;
+    if (dataUrl) { logoImage.src = dataUrl; logoImage.hidden = false; logoPlaceholder.hidden = true; if (logoRemove) logoRemove.hidden = false; }
+    else { logoImage.removeAttribute('src'); logoImage.hidden = true; logoPlaceholder.hidden = false; if (logoRemove) logoRemove.hidden = true; }
+  }
+  function loadClientLogo() {
+    try { showClientLogo(localStorage.getItem(logoStorageKey())); }
+    catch (_) { showClientLogo(null); }
+  }
+  logoInput?.addEventListener('change', () => {
+    const file = logoInput.files?.[0];
+    if (!file) return;
+    const allowed = ['image/png','image/jpeg','image/webp','image/svg+xml'];
+    if (!allowed.includes(file.type)) { message('Choose a PNG, JPG, WEBP or SVG logo.'); logoInput.value = ''; return; }
+    if (file.size > 2 * 1024 * 1024) { message('Logo must be 2 MB or smaller.'); logoInput.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        localStorage.setItem(logoStorageKey(), String(reader.result));
+        showClientLogo(String(reader.result));
+        if (logoNote) logoNote.textContent = 'Logo saved in this browser';
+        message('Company logo updated on this device.');
+      } catch (_) { message('Could not save the logo in this browser. Try a smaller image.'); }
+    };
+    reader.onerror = () => message('The selected logo could not be read.');
+    reader.readAsDataURL(file);
+    logoInput.value = '';
+  });
+  logoRemove?.addEventListener('click', () => {
+    try { localStorage.removeItem(logoStorageKey()); } catch (_) {}
+    showClientLogo(null);
+    if (logoNote) logoNote.textContent = 'PNG, JPG, WEBP or SVG · max 2 MB';
+    message('Company logo removed from this browser.');
+  });
+
   const themeToggle = $('#theme-toggle');
   const applyTheme = theme => {
     const dark = theme === 'dark';
