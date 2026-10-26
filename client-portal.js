@@ -128,24 +128,30 @@
     const summary = $('#portal-task-summary');
     if (!host) return;
     const tasks = Array.isArray(state.tasks) ? state.tasks : [];
-    const completed = tasks.filter(t => String(t.status || '').toLowerCase() === 'completed').length;
-    if (summary) summary.textContent = `${completed} of ${tasks.length} tasks completed`;
+    const isDone = task => ['completed','complete','done','closed'].includes(String(task.status || '').toLowerCase());
+    const completed = tasks.filter(isDone);
+    const active = tasks.filter(task => !isDone(task));
+    if (summary) summary.textContent = `${completed.length} filed · ${active.length} on the board`;
     if (state.tasksError) {
       host.innerHTML = '<div class="empty-state">Development tasks are temporarily unavailable. Please try again shortly.</div>';
       return;
     }
     if (!tasks.length) {
-      host.innerHTML = '<div class="empty-state">No development tasks have been recorded for this application yet.</div>';
+      host.innerHTML = '<div class="empty-state board-empty"><span class="empty-board-icon">▤</span><strong>Your pinboard is ready</strong><p>Tasks will appear here as your project team publishes them.</p></div>';
       return;
     }
-    const rank = status => ({'in progress':1,'in review':2,'blocked':3,'to do':4,'completed':5}[String(status || '').toLowerCase()] || 6);
-    const ordered = tasks.slice().sort((a,b) => rank(a.status)-rank(b.status) || new Date(a.dueDateUtc || 0)-new Date(b.dueDateUtc || 0));
-    host.innerHTML = ordered.map(task => {
-      const status = String(task.status || 'To Do');
-      const css = status.toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
-      const due = task.dueDateUtc ? `Due ${formatDate(task.dueDateUtc)}` : 'No due date';
-      return `<article class="portal-task-row"><span class="portal-task-status ${esc(css)}" aria-label="${esc(status)}"></span><div class="portal-task-copy"><strong>${esc(task.title || 'Development task')}</strong>${task.description ? `<p>${esc(task.description)}</p>` : ''}<small>${esc(due)}${task.completedAtUtc ? ` · Completed ${esc(formatDate(task.completedAtUtc))}` : ''}</small></div><span class="portal-task-badge ${esc(css)}">${esc(status)}</span></article>`;
-    }).join('');
+    const cssStatus = status => String(status || 'To Do').toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
+    const card = (task, index, done=false) => {
+      const status = String(task.status || (done ? 'Completed' : 'To Do'));
+      const css = cssStatus(status);
+      const due = task.dueDateUtc || task.dueDate ? `Due ${formatDate(task.dueDateUtc || task.dueDate)}` : '';
+      const completedDate = task.completedAtUtc || task.completedAt || task.updatedAtUtc;
+      const meta = done ? `Filed${completedDate ? ` ${formatDate(completedDate)}` : ''}` : (due || 'In the development queue');
+      return `<article class="task-pin ${done ? 'task-pin-completed' : ''} pin-variation-${index % 4}"><span class="task-pin-head" aria-hidden="true"></span><div class="task-pin-topline"><span class="task-pin-category">${done ? 'COMPLETED FILE' : 'DEVELOPMENT TASK'}</span><span class="task-pin-check" aria-hidden="true">${done ? '✓' : '↗'}</span></div><h3>${esc(task.title || 'Development task')}</h3>${task.description ? `<p>${esc(task.description)}</p>` : '<p class="task-no-description">A task tracked by your Zyma project team.</p>'}<div class="task-pin-footer"><span class="portal-task-badge ${esc(css)}">${esc(status)}</span><small>${esc(meta)}</small></div></article>`;
+    };
+    const activeMarkup = active.length ? `<div class="pinboard-grid">${active.map((task,i)=>card(task,i)).join('')}</div>` : '<div class="empty-state board-empty compact-empty">Nothing currently pinned. Your active task board is clear.</div>';
+    const completedMarkup = completed.length ? `<details class="completed-file"><summary><span class="file-folder-icon" aria-hidden="true">▰</span><span class="completed-file-copy"><strong>Completed</strong><small>${completed.length} task${completed.length===1?'':'s'} filed away</small></span><span class="completed-file-action">Open file <span aria-hidden="true">⌄</span></span></summary><div class="pinboard-grid completed-pinboard">${completed.map((task,i)=>card(task,i,true)).join('')}</div></details>` : `<div class="completed-file empty-file"><span class="file-folder-icon" aria-hidden="true">▱</span><span class="completed-file-copy"><strong>Completed</strong><small>Finished tasks will be filed here automatically.</small></span></div>`;
+    host.innerHTML = `<section class="active-pinboard"><div class="pinboard-section-heading"><div><span class="pinboard-overline">IN PROGRESS</span><h3>On the board</h3></div><span class="pin-count">${active.length} pinned</span></div>${activeMarkup}</section>${completedMarkup}`;
   }
   async function loadProjectTasks(projectId, { silent = false } = {}) {
     if (!projectId) {
@@ -270,6 +276,26 @@
       message('Portal data could not be loaded. The shared API must be available before client data can be displayed.');
     }
   }
+  const themeToggle = $('#theme-toggle');
+  const applyTheme = theme => {
+    const dark = theme === 'dark';
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    if (themeToggle) {
+      themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+      themeToggle.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+      const icon = $('.theme-toggle-icon', themeToggle); if (icon) icon.textContent = dark ? '☀' : '☾';
+      const label = $('.theme-toggle-label', themeToggle); if (label) label.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    const meta = $('meta[name="theme-color"]'); if (meta) meta.content = dark ? '#111827' : '#f6f7fb';
+  };
+  let savedTheme = 'light';
+  try { savedTheme = localStorage.getItem('zyma-client-portal-theme') || 'light'; } catch (_) {}
+  applyTheme(savedTheme);
+  themeToggle?.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('zyma-client-portal-theme', next); } catch (_) {}
+  });
   $$('.portal-nav-item').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.section)));
   $$('[data-go]').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.go)));
   $$('[data-open-request]').forEach(button=>button.addEventListener('click',()=>{
