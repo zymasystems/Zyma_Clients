@@ -369,8 +369,25 @@
     applyTheme(next);
     try { localStorage.setItem('zyma-client-portal-theme', next); } catch (_) {}
   });
-  $$('.portal-nav-item').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.section)));
-  $$('[data-go]').forEach(button=>button.addEventListener('click',()=>showSection(button.dataset.go)));
+  const portalSidebar = $('#portal-sidebar');
+  const mobileNavToggle = $('#mobile-nav-toggle');
+  const setMobileNavOpen = open => {
+    if (!portalSidebar || !mobileNavToggle) return;
+    portalSidebar.classList.toggle('mobile-nav-open', open);
+    mobileNavToggle.setAttribute('aria-expanded', String(open));
+    mobileNavToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+  };
+  mobileNavToggle?.addEventListener('click', () => setMobileNavOpen(mobileNavToggle.getAttribute('aria-expanded') !== 'true'));
+  $$('.portal-nav-item').forEach(button=>button.addEventListener('click',()=>{
+    showSection(button.dataset.section);
+    setMobileNavOpen(false);
+  }));
+  $$('[data-go]').forEach(button=>button.addEventListener('click',()=>{ showSection(button.dataset.go); setMobileNavOpen(false); }));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') setMobileNavOpen(false); });
+  document.addEventListener('click', event => {
+    if (portalSidebar?.classList.contains('mobile-nav-open') && !portalSidebar.contains(event.target)) setMobileNavOpen(false);
+  });
+  window.matchMedia('(min-width: 761px)').addEventListener?.('change', event => { if (event.matches) setMobileNavOpen(false); });
   $$('[data-open-request]').forEach(button=>button.addEventListener('click',()=>{
     message('Support requests are not connected to the API yet. Please contact your Zyma representative.');
   }));

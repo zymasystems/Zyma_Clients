@@ -10,8 +10,12 @@
 </head>
 <body>
   <div class="portal-shell">
-    <aside class="portal-sidebar">
-      <a class="brand" href="client-portal.html"><img src="assets/zyma-symbol.png" alt="Zyma Systems"><span><strong>ZYMA</strong><small>CLIENT PORTAL</small></span></a>
+    <aside class="portal-sidebar" id="portal-sidebar">
+      <div class="sidebar-header">
+        <a class="brand" href="client-portal.html"><img src="assets/zyma-symbol.png" alt="Zyma Systems"><span><strong>ZYMA</strong><small>CLIENT PORTAL</small></span></a>
+        <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-label="Open navigation menu" aria-controls="portal-navigation-panel" aria-expanded="false"><span></span><span></span><span></span></button>
+      </div>
+      <div class="portal-navigation-panel" id="portal-navigation-panel">
       <div class="client-workspace"><span class="client-icon">CL</span><div><strong>Client workspace</strong><small>Client Portal</small></div><span class="chevron">⌄</span></div>
       <p class="nav-caption">YOUR SPACE</p>
       <nav class="portal-nav" aria-label="Client portal navigation">
@@ -21,6 +25,7 @@
         <button class="portal-nav-item" data-section="support"><span>✳</span>Help & maintenance <b id="nav-ticket-count">0</b></button>
       </nav>
       <div class="sidebar-bottom"><div class="help-card"><span class="help-icon">?</span><strong>Need help?</strong><p>Report an issue or ask our team for assistance.</p><button data-open-request>Submit a request ↗</button></div><div class="portal-user"><span class="avatar">CL</span><span><strong>Client account</strong><small>Client user</small></span><button id="client-menu" aria-label="Account options">···</button></div></div>
+      </div>
     </aside>
     <main class="portal-main">
       <header class="portal-topbar"><div><p class="breadcrumb">Client portal <span>/</span> <strong id="current-breadcrumb">Overview</strong></p><p class="topbar-note">A shared view of your application and support.</p></div><div class="top-actions"><span class="secure-label"><i></i> Private client space</span><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch theme"><span class="theme-toggle-icon" aria-hidden="true">☾</span><span class="theme-toggle-label">Dark mode</span></button><button class="outline-button" data-open-request>＋ <span>New support request</span></button><button class="avatar avatar-small" title="Client account">CL</button></div></header>
