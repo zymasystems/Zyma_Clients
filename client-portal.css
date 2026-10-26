@@ -245,3 +245,144 @@ html[data-theme="light"] #full-milestone-track .roadmap-mark{border-color:#fff}
 html[data-theme="dark"] .company-logo-frame{background:#202020;border-color:#70461e}html[data-theme="dark"] .company-profile-stamp{background:#241b13;border-color:#52351b}html[data-theme="dark"] .identity-tags{color:#d0d0d0}
 @media(max-width:1250px){.company-identity-board{grid-template-columns:100px minmax(0,1fr);gap:15px}.company-profile-stamp{grid-column:2;justify-self:start;min-width:145px}.company-logo-frame{width:86px;height:86px}}
 @media(max-width:700px){#section-application .detail-layout>.company-profile-card{padding:17px}.company-board-top{gap:9px}.company-board-top h2{font-size:15px}.company-board-top .status-chip{max-width:110px;text-align:center}.company-identity-board{grid-template-columns:78px minmax(0,1fr);gap:12px;padding:18px 0}.company-logo-frame{width:72px;height:72px;border-radius:13px}.company-logo-frame span{font-size:20px}.company-identity-copy h3{font-size:19px}.company-identity-copy>p{font-size:10px}.company-profile-stamp{grid-column:1/-1;justify-self:stretch;min-width:0}.company-facts-grid{gap:7px}.company-fact{grid-template-columns:26px minmax(0,1fr);column-gap:7px;padding:10px}.fact-icon{width:26px;height:26px;font-size:14px}.fact-label{font-size:8px}.company-fact strong{font-size:10px}.logo-upload-note{max-width:80px;font-size:7px}}
+
+/* Final responsive pass: small screens, touch targets, and overflow protection. */
+html,body{max-width:100%;overflow-x:hidden}
+img,svg,video,canvas{max-width:100%}
+.portal-shell,.portal-main,.portal-content,.portal-section,.surface-card,.stat-card,.detail-layout,.overview-grid,.company-profile-card,.milestones-card,.updates-card{min-width:0}
+.portal-content{width:100%}
+button,a,input,select,textarea{touch-action:manipulation}
+input,select,textarea{max-width:100%}
+#section-application .detail-layout{align-items:stretch}
+#full-milestone-track .roadmap-card small,#overview-milestone-track .roadmap-card small{overflow-wrap:anywhere;word-break:normal}
+.company-fact strong,.company-identity-copy h3,.company-board-top h2{overflow-wrap:anywhere}
+@media(max-width:1100px){
+ .portal-shell{grid-template-columns:220px minmax(0,1fr)}
+ .portal-topbar{padding:0 22px}
+ .portal-content{padding:25px 22px 38px}
+ .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .overview-grid{grid-template-columns:minmax(0,1fr)}
+ .detail-layout{grid-template-columns:minmax(0,1fr)}
+ .company-identity-board{grid-template-columns:94px minmax(0,1fr)}
+ .company-profile-stamp{grid-column:2;justify-self:start}
+}
+@media(max-width:760px){
+ .portal-shell{display:flex;flex-direction:column;min-height:100dvh}
+ .portal-sidebar{min-height:0;width:100%;padding:12px 14px 10px;display:block;position:relative;z-index:5}
+ .brand{padding:0 4px 12px;gap:8px}
+ .brand img{width:30px;height:30px}
+ .brand strong{font-size:16px}
+ .brand small{font-size:8px}
+ .client-workspace{margin:0 0 10px;padding:9px 10px}
+ .client-icon{width:32px;height:32px}
+ .nav-caption,.sidebar-bottom,.portal-user{display:none}
+ .portal-nav{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:2px 0 4px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+ .portal-nav-item{flex:0 0 auto;min-height:42px;padding:10px 12px;white-space:nowrap;gap:7px;font-size:11px}
+ .portal-nav-item>span{font-size:15px;width:auto}
+ .portal-main{width:100%;min-width:0}
+ .portal-topbar{height:auto;min-height:68px;padding:12px 15px;align-items:flex-start;gap:12px}
+ .portal-topbar>div:first-child{min-width:0;flex:1}
+ .breadcrumb{font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+ .topbar-note{font-size:10px;line-height:1.45}
+ .top-actions{gap:7px;flex-wrap:wrap;justify-content:flex-end}
+ .secure-label{display:none}
+ .outline-button,.primary-button,.theme-toggle{min-height:40px;padding:9px 10px;font-size:10px}
+ .top-actions .avatar-small{width:30px;height:30px}
+ .portal-content{padding:22px 14px 34px}
+ .welcome-row,.page-intro{display:block;margin-bottom:18px}
+ .welcome-row h1,.page-intro h1{font-size:clamp(23px,6vw,29px);line-height:1.2;overflow-wrap:anywhere}
+ .welcome-row>.updated-pill{display:inline-flex;margin-top:12px;white-space:normal}
+ .muted{font-size:12px}
+ .project-banner{padding:21px 18px;border-radius:13px;display:flex;flex-direction:column;align-items:stretch;gap:18px}
+ .project-banner .banner-copy h2{font-size:clamp(22px,6vw,28px);overflow-wrap:anywhere}
+ .banner-meta{gap:14px 18px;margin-top:17px}
+ .banner-meta>span{min-width:calc(50% - 12px);overflow-wrap:anywhere}
+ .banner-progress{display:flex;align-items:center;justify-content:flex-start;gap:12px}
+ .progress-orbit{width:88px;height:88px;flex:0 0 88px}
+ .progress-ring{width:78px;height:78px}
+ .progress-ring:before{inset:5px}
+ .progress-ring strong{font-size:20px}
+ .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:13px 0}
+ .stat-card{padding:13px 12px;overflow-wrap:anywhere}
+ .stat-card>strong{font-size:21px}
+ .stat-label,.stat-card>small{line-height:1.5}
+ .overview-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+ .surface-card{padding:16px;border-radius:12px}
+ .section-heading,.filter-row{gap:10px;align-items:flex-start}
+ .section-heading h2,.filter-row h2{font-size:13px}
+ .text-button{white-space:normal;text-align:right;flex-shrink:0}
+ .roadmap-list{min-width:0}
+ #overview-milestone-track{grid-template-columns:minmax(0,1fr);gap:12px;padding-left:8px}
+ #overview-milestone-track:before{left:18px;right:auto;top:8px;bottom:8px;width:7px;height:auto;background:repeating-linear-gradient(to bottom,#f39200 0 15px,transparent 15px 25px),#262626}
+ #overview-milestone-track .roadmap-item{margin-left:37px}
+ #overview-milestone-track .roadmap-mark{position:absolute;left:-35px;top:12px;width:25px;height:25px}
+ .detail-layout{grid-template-columns:minmax(0,1fr);gap:14px}
+ #section-application .detail-layout>.company-profile-card{padding:16px}
+ .company-board-top{align-items:flex-start}
+ .company-board-top p{overflow-wrap:anywhere}
+ .company-identity-board{grid-template-columns:74px minmax(0,1fr);gap:12px;padding:16px 0}
+ .company-logo-frame{width:68px;height:68px}
+ .company-logo-area{gap:7px}
+ .logo-upload-button{font-size:10px}
+ .logo-upload-note{max-width:74px;font-size:8px}
+ .company-identity-copy h3{font-size:18px;line-height:1.25}
+ .company-identity-copy>p{font-size:10px;overflow-wrap:anywhere}
+ .company-profile-stamp{grid-column:1/-1;min-width:0;width:100%}
+ .company-facts-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .company-fact{min-width:0;padding:10px;grid-template-columns:25px minmax(0,1fr);column-gap:7px}
+ .company-fact strong{font-size:11px;overflow-wrap:anywhere}
+ .fact-label{font-size:9px;overflow-wrap:anywhere}
+ .company-scope-block{padding:13px!important}
+ #full-milestone-track{padding:12px 0 16px;gap:14px}
+ #full-milestone-track:before{left:13px;top:0;bottom:0;width:34px;border-radius:22px;box-shadow:inset 0 0 0 4px #111}
+ #full-milestone-track:after{left:30px;top:12px;bottom:12px}
+ #full-milestone-track .roadmap-item{grid-template-columns:63px minmax(0,1fr);gap:0;min-height:0}
+ #full-milestone-track .roadmap-mark{grid-column:1;grid-row:1;width:30px;height:30px;margin-left:16px;font-size:10px}
+ #full-milestone-track .roadmap-card,#full-milestone-track .roadmap-item:nth-child(even) .roadmap-card{grid-column:2;grid-row:1;padding:13px 12px;min-width:0}
+ #full-milestone-track .roadmap-card:after,#full-milestone-track .roadmap-item:nth-child(even) .roadmap-card:after{left:-9px;right:auto;width:9px}
+ #full-milestone-track .roadmap-card strong{font-size:13px;line-height:1.4}
+ #full-milestone-track .roadmap-card small{font-size:11px;line-height:1.55}
+ #full-milestone-track .roadmap-status{font-size:9px;white-space:normal}
+ .portal-tasks-card{padding:16px!important;margin-top:14px}
+ .pinboard-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:6px 2px}
+ .task-pin,.task-pin.pin-variation-1,.task-pin.pin-variation-2,.task-pin.pin-variation-3{min-width:0;min-height:175px;padding:17px 13px 13px;transform:none}
+ .task-pin h3,.task-pin strong{overflow-wrap:anywhere}
+ .task-pin-description{overflow-wrap:anywhere}
+ .ticket-row{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:11px}
+ .ticket-right{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:wrap}
+ .support-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .support-stats>div{min-width:0;padding:12px 9px}
+ .support-stats span{font-size:9px;overflow-wrap:anywhere}
+ .support-stats strong{font-size:20px}
+ .filter-row select{max-width:48%;min-width:0}
+ .request-modal{padding:17px;max-height:calc(100dvh - 24px);border-radius:13px}
+ .modal-backdrop{padding:12px;align-items:start}
+ .form-two{grid-template-columns:minmax(0,1fr)}
+ .modal-actions{flex-wrap:wrap}
+ .modal-actions button{flex:1;min-height:42px}
+ .toast{left:12px;right:12px;bottom:12px;text-align:center}
+}
+@media(max-width:420px){
+ .portal-topbar{display:block}
+ .top-actions{justify-content:flex-start;margin-top:10px}
+ .top-actions .outline-button{font-size:10px}
+ .stats-grid{grid-template-columns:minmax(0,1fr)}
+ .stat-card{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:10px;align-items:center}
+ .stat-icon{grid-row:1/4;margin:0}
+ .stat-label,.stat-card>strong,.stat-card>small,.mini-progress{grid-column:2}
+ .stat-label{margin-bottom:2px}
+ .stat-card>strong{margin-bottom:2px}
+ .mini-progress{margin-top:3px}
+ .company-identity-board{grid-template-columns:1fr;justify-items:start}
+ .company-identity-copy{width:100%}
+ .company-facts-grid{grid-template-columns:minmax(0,1fr)}
+ .pinboard-grid{grid-template-columns:minmax(0,1fr)}
+ .task-pin,.task-pin.pin-variation-1,.task-pin.pin-variation-2,.task-pin.pin-variation-3{min-height:150px}
+ .section-heading{flex-wrap:wrap}
+ .text-button{margin-left:auto}
+ .support-stats{grid-template-columns:1fr}
+ .support-stats>div{display:flex;align-items:center;justify-content:space-between}
+ .filter-row{flex-direction:column}
+ .filter-row select{max-width:100%;width:100%}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
