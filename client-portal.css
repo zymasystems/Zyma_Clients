@@ -423,3 +423,28 @@ input,select,textarea{max-width:100%}
 
 /* Client profile editor */
 .profile-modal{width:min(790px,100%);max-height:calc(100dvh - 36px);overflow:auto}.profile-modal .modal-heading{position:sticky;top:-1px;z-index:2;background:var(--panel);padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:18px}.profile-form-section{padding:0 0 18px;margin-bottom:18px;border-bottom:1px solid var(--border)}.profile-form-section h3{font:800 13px Manrope,sans-serif;margin:0 0 14px;color:var(--text)}.profile-modal form>label,.profile-modal .form-two>label{display:flex;flex-direction:column;gap:7px;font-size:11px;font-weight:700;color:var(--text);margin-bottom:13px}.profile-modal input,.profile-modal select{width:100%;min-width:0;border:1px solid var(--border);border-radius:8px;padding:11px 12px;background:var(--panel);color:var(--text);font-size:12px}.profile-modal input:focus,.profile-modal select:focus{outline:2px solid #f5b46f;outline-offset:1px}.profile-modal .form-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 13px}.profile-modal .privacy-note{margin:5px 0 12px}.profile-modal .form-feedback.error{color:#c53d3d}.profile-modal .form-feedback.success{color:#16845b}.profile-modal button:disabled{opacity:.65;cursor:wait}.avatar-small{cursor:pointer}.modal-open{overflow:hidden}@media(max-width:600px){.profile-modal{max-height:calc(100dvh - 18px);padding:17px}.profile-modal .form-two{grid-template-columns:minmax(0,1fr);gap:0}.profile-modal .modal-heading{align-items:flex-start}.profile-modal .modal-actions{position:sticky;bottom:-1px;background:var(--panel);padding-top:12px}}
+
+/* Support ticket detail and two-way conversation */
+.ticket-detail-modal{width:min(760px,100%)}
+.ticket-detail-summary{border:1px solid var(--border);background:var(--surface-soft);border-radius:10px;padding:16px;margin-bottom:20px}
+.ticket-detail-label{display:block;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--muted);margin-bottom:8px}
+.ticket-detail-summary p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.7;margin:0 0 10px;color:var(--text)}
+.ticket-detail-summary small{font-size:10px;color:var(--muted)}
+.ticket-conversation-section{margin-bottom:18px}
+.ticket-conversation-heading{margin-bottom:12px}
+.ticket-conversation-heading h3{font:800 14px Manrope;margin:0 0 5px}
+.ticket-conversation-heading p{font-size:10px;color:var(--muted);margin:0}
+.ticket-conversation{display:grid;gap:12px;max-height:280px;overflow:auto;padding:2px 3px 8px}
+.ticket-message{max-width:90%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface-soft)}
+.ticket-message.from-client{justify-self:end;background:#fff5e8;border-color:#f4d4ad}
+.ticket-message.from-staff{justify-self:start}
+.ticket-message-heading{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:7px}
+.ticket-message-heading strong{font-size:10px}
+.ticket-message-heading time{font-size:9px;color:var(--muted)}
+.ticket-message p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.7;color:var(--text)}
+.ticket-detail-modal #ticket-reply-form{display:grid;gap:9px}
+.ticket-detail-modal #ticket-reply-form label{font-size:11px;font-weight:700}
+.ticket-detail-modal #ticket-reply-form textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;padding:12px;background:var(--panel);color:var(--text);font:inherit;font-size:12px;resize:vertical}
+.ticket-detail-modal .ticket-closed-note{margin:14px 0 0}
+html[data-theme="dark"] .ticket-message.from-client{background:#382b1d;border-color:#654a2d}
+@media(max-width:700px){.ticket-detail-modal{padding:17px}.ticket-message{max-width:100%}.ticket-message-heading{align-items:flex-start;flex-direction:column;gap:4px}}

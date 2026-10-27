@@ -527,16 +527,68 @@
       if (submit) { submit.disabled = false; submit.textContent = 'Submit request ↗'; }
     }
   });
-  $('#full-ticket-list')?.addEventListener('click', async event => {
+  const ticketModal = $('#ticket-detail-modal');
+  const ticketReplyForm = $('#ticket-reply-form');
+  let activeTicketId = null;
+  const closeTicketModal = () => { if (ticketModal) ticketModal.hidden = true; activeTicketId = null; };
+  const ticketIsClosed = status => ['Resolved', 'Closed'].includes(String(status || '').toLowerCase());
+  function renderTicketDetail(ticket) {
+    const replies = Array.isArray(ticket.replies) ? ticket.replies : [];
+    const status = String(ticket.status || 'Open');
+    const title = $('#ticket-detail-title'); if (title) title.textContent = ticket.subject || 'Support request';
+    const reference = $('#ticket-detail-reference'); if (reference) reference.textContent = `${ticket.ticketReference || 'Request'} · ${status} · ${String(ticket.priority || 'Normal')} priority`;
+    const description = $('#ticket-detail-description'); if (description) description.textContent = ticket.description || 'No description provided.';
+    const meta = $('#ticket-detail-meta'); if (meta) meta.textContent = `${ticket.category || 'General'} · Submitted ${formatDate(ticket.createdAtUtc)}${ticket.projectName ? ` · ${ticket.projectName}` : ''}`;
+    const conversation = $('#ticket-conversation');
+    if (conversation) conversation.innerHTML = replies.length ? replies.map(reply => {
+      const isClient = String(reply.authorRole || '').toLowerCase() === 'client';
+      return `<article class="ticket-message ${isClient ? 'from-client' : 'from-staff'}"><div class="ticket-message-heading"><strong>${esc(isClient ? 'You' : (reply.authorName || 'Zyma representative'))}</strong><time>${esc(formatDate(reply.createdAtUtc))}</time></div><p>${esc(reply.body || '')}</p></article>`;
+    }).join('') : '<div class="empty-state">Your request has been received. A Zyma representative will respond here.</div>';
+    const closed = ticketIsClosed(status);
+    const replyArea = $('#ticket-reply-area'); if (replyArea) replyArea.hidden = closed;
+    const closedNote = $('#ticket-closed-note'); if (closedNote) { closedNote.hidden = !closed; closedNote.textContent = `This ticket is ${status.toLowerCase()}. Replies are disabled. Contact your Zyma representative if you need further assistance.`; }
+    const feedback = $('#ticket-reply-feedback'); if (feedback) feedback.textContent = '';
+    const submit = $('#ticket-reply-submit'); if (submit) submit.disabled = closed;
+    if (ticketModal) ticketModal.hidden = false;
+    document.body.classList.add('modal-open');
+  }
+  document.addEventListener('click', async event => {
     const button = event.target.closest('[data-view-ticket]');
-    if (!button) return;
-    try {
-      const ticket = await api(`/portal/support/${encodeURIComponent(button.dataset.viewTicket)}`);
-      const replies = Array.isArray(ticket.replies) ? ticket.replies : [];
-      const lines = replies.map(reply => `${reply.authorRole === 'Client' ? 'You' : 'Zyma'} · ${formatDate(reply.createdAtUtc)}\n${reply.body}`).join('\n\n');
-      message(`${ticket.ticketReference || 'Request'}${ticket.status ? ` · ${ticket.status}` : ''}${lines ? `\n${lines}` : ''}`);
-    } catch (error) { message(error.message || 'Could not open this request.'); }
+    if (button) {
+      try {
+        const ticket = await api(`/portal/support/${encodeURIComponent(button.dataset.viewTicket)}`);
+        activeTicketId = ticket.id || button.dataset.viewTicket;
+        renderTicketDetail(ticket);
+      } catch (error) { message(error.message || 'Could not open this request.'); }
+      return;
+    }
+    if (event.target.closest('#close-ticket-detail') || event.target === ticketModal) {
+      closeTicketModal(); document.body.classList.remove('modal-open');
+    }
   });
+  ticketReplyForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!activeTicketId) return;
+    const input = ticketReplyForm.elements.namedItem('body');
+    const body = String(input?.value || '').trim();
+    const feedback = $('#ticket-reply-feedback');
+    if (!body) { if (feedback) feedback.textContent = 'Write a response before sending.'; return; }
+    const submit = $('#ticket-reply-submit'); if (submit) { submit.disabled = true; submit.textContent = 'Sending…'; }
+    if (feedback) feedback.textContent = 'Sending your response…';
+    try {
+      await api(`/portal/support/${encodeURIComponent(activeTicketId)}/replies`, { method: 'POST', body: JSON.stringify({ body }) });
+      if (input) input.value = '';
+      const ticket = await api(`/portal/support/${encodeURIComponent(activeTicketId)}`);
+      renderTicketDetail(ticket);
+      await loadSupportTickets({ silent: true });
+      message('Your response has been sent to Zyma Support.');
+    } catch (error) {
+      if (feedback) feedback.textContent = error.message || 'Your response could not be sent. Please try again.';
+    } finally {
+      if (submit) { submit.disabled = false; submit.textContent = 'Send response'; }
+    }
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && ticketModal && !ticketModal.hidden) { closeTicketModal(); document.body.classList.remove('modal-open'); } });
   $('#ticket-filter')?.addEventListener('change',renderTickets); $('#update-filter')?.addEventListener('change',renderUpdates);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && state.project?.id) loadProjectDetails(state.project.id).catch(() => {});
