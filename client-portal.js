@@ -3,7 +3,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const API_BASE = String(window.ZYMA_PORTAL_CONFIG?.apiBaseUrl || 'https://api.zyma.co.za/api/crm').replace(/\/$/, '');
-  const state = { user: null, project: null, projects: [], tasks: [], updates: [], tickets: [], updatesError: false, updatesLoading: false, milestonesError: false, tasksError: false, updateTimer: null };
+  const state = { user: null, project: null, projects: [], tasks: [], updates: [], expandedUpdateIds: new Set(), tickets: [], updatesError: false, updatesLoading: false, milestonesError: false, tasksError: false, updateTimer: null };
   const api = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
       credentials: 'omit',
@@ -73,9 +73,30 @@
   function renderUpdates() {
     const filter = $('#update-filter')?.value || 'all';
     const visible = state.updates.filter(item => filter === 'all' || String(item.category || 'Development').toLowerCase() === filter.toLowerCase());
-    const markup = visible.length ? visible.map(item => { const category = String(item.category || 'Development'); const dot = category.toLowerCase() === 'approval' ? 'green-dot' : category.toLowerCase() === 'milestone' ? 'blue-dot' : 'orange-dot'; return `<article class="update-item"><span class="update-dot ${dot}"></span><div><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.publishedAtUtc || item.publishedAt || item.createdAt || item.createdAtUtc || item.date))}</time></div><p>${esc(item.body || item.message || item.description || '')}</p><span class="update-tag">${esc(category)}</span></div></article>`; }).join('') : `<div class="empty-state">${state.updatesError ? 'Development updates are temporarily unavailable. Please try again shortly.' : state.updatesLoading ? 'Loading published updates…' : 'No project updates have been published.'}</div>`;
+    const markup = visible.length ? visible.map((item, index) => {
+      const category = String(item.category || 'Development');
+      const dot = category.toLowerCase() === 'approval' ? 'green-dot' : category.toLowerCase() === 'milestone' ? 'blue-dot' : 'orange-dot';
+      const body = String(item.body || item.message || item.description || '');
+      const key = String(item.id || item.updateId || `${item.title || 'update'}-${index}`);
+      const expanded = state.expandedUpdateIds.has(key);
+      const long = body.length > 280;
+      const shownBody = long && !expanded ? `${body.slice(0, 280).trimEnd()}…` : body;
+      return `<article class="update-item"><span class="update-dot ${dot}"></span><div class="update-content"><div class="update-meta"><strong>${esc(item.title || item.subject || 'Project update')}</strong><time>${esc(formatDate(item.publishedAtUtc || item.publishedAt || item.createdAt || item.createdAtUtc || item.date))}</time></div><p class="update-body">${esc(shownBody)}</p>${long ? `<button class="update-read-toggle" type="button" data-update-read="${esc(key)}" aria-expanded="${expanded}">${expanded ? 'Show less' : 'Read full update'}</button>` : ''}<span class="update-tag">${esc(category)}</span></div></article>`;
+    }).join('') : `<div class="empty-state">${state.updatesError ? 'Development updates are temporarily unavailable. Please try again shortly.' : state.updatesLoading ? 'Loading published updates…' : 'No project updates have been published.'}</div>`;
     ['#overview-update-feed','#full-update-feed'].forEach(selector => { const el=$(selector); if(el) el.innerHTML=markup; });
   }
+  ['#overview-update-feed','#full-update-feed'].forEach(selector => {
+    const feed = $(selector);
+    if (!feed) return;
+    feed.addEventListener('click', event => {
+      const button = event.target.closest('[data-update-read]');
+      if (!button) return;
+      const key = button.dataset.updateRead;
+      if (state.expandedUpdateIds.has(key)) state.expandedUpdateIds.delete(key);
+      else state.expandedUpdateIds.add(key);
+      renderUpdates();
+    });
+  });
   function renderTickets() {
     const tickets = state.tickets;
     const openStatus = status => !['Resolved','Closed'].includes(String(status));

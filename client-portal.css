@@ -448,3 +448,23 @@ input,select,textarea{max-width:100%}
 .ticket-detail-modal .ticket-closed-note{margin:14px 0 0}
 html[data-theme="dark"] .ticket-message.from-client{background:#382b1d;border-color:#654a2d}
 @media(max-width:700px){.ticket-detail-modal{padding:17px}.ticket-message{max-width:100%}.ticket-message-heading{align-items:flex-start;flex-direction:column;gap:4px}}
+
+
+/* Development update reading controls */
+.update-content { min-width: 0; }
+.update-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.update-read-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent, #f59e0b);
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.update-read-toggle:hover { text-decoration: underline; }
+.update-read-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 3px; }
