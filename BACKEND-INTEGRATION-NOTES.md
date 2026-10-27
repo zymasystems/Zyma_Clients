@@ -51,3 +51,15 @@ The portal profile editor reads the authenticated identity from `GET /portal/me`
 Suggested response shape: `{ "profile": { "fullName", "jobTitle", "department", "companyRole", "email", "alternateEmail", "phone", "mobile", "preferredContact", "linkedin", "companyName", "industry", "companyWebsite", "companyEmail", "companyPhone", "companySize", "registrationNumber", "vatNumber", "address", "city", "province", "postalCode", "country" } }`. `GET /portal/me` should return the same editable fields for pre-filling the profile form.
 
 Project summary fields expected by the portal: `code`/`reference`, `scope` and/or `scopeItems`, `managerName`/`projectLead`, `startDate`, `targetDate`, `status`/`phase`. These should be returned only for projects linked to the authenticated client's organization.
+
+
+## Project profile fields — required API contract
+
+The portal frontend now accepts the CRM's common aliases for project reference, agreed scope, and project lead. The API must still include the underlying values in `GET /api/crm/portal/projects` and `GET /api/crm/portal/projects/{id}` (the portal's configured base URL already ends in `/api/crm`).
+
+Return stable JSON fields where possible:
+- `code` (for example `ZS-ECB828BD`)
+- `scope` (the agreed scope/description)
+- `managerName` (the assigned project lead's display name)
+
+Do not return a generated reference in place of a saved CRM reference. Project lead will correctly remain “Not assigned” until a lead/project manager is actually assigned to that CRM project. The API must derive project access from the authenticated client and must not trust arbitrary client IDs supplied by the browser.

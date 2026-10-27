@@ -94,9 +94,34 @@
     state.project = project || null;
     loadClientLogo();
     const p = state.project;
-    const name = p?.name || p?.title || 'No application assigned';
-    const code = p?.code || p?.reference || 'Not assigned';
-    const lead = p?.managerName || p?.projectLead || p?.manager || 'Not assigned';
+    const firstValue = (...values) => values.find(value =>
+      value !== undefined && value !== null && String(value).trim() !== ''
+    );
+    const name = firstValue(p?.name, p?.Name, p?.title, p?.Title, 'No application assigned');
+    // The CRM and portal API have used different DTO field names over time.
+    // Accept the known project-reference aliases instead of silently showing
+    // "Not assigned" when the API returns ProjectReference/ProjectCode.
+    const code = firstValue(
+      p?.code, p?.Code, p?.projectCode, p?.ProjectCode,
+      p?.projectReference, p?.ProjectReference,
+      p?.referenceCode, p?.ReferenceCode, p?.reference, p?.Reference,
+      'Not assigned'
+    );
+    const leadValue = firstValue(
+      p?.managerName, p?.ManagerName, p?.projectLead, p?.ProjectLead,
+      p?.projectLeadName, p?.ProjectLeadName, p?.projectManagerName,
+      p?.ProjectManagerName, p?.manager, p?.Manager,
+      p?.assignedToName, p?.AssignedToName, p?.ownerName, p?.OwnerName
+    );
+    const lead = typeof leadValue === 'object' && leadValue
+      ? firstValue(leadValue.fullName, leadValue.name, leadValue.displayName, leadValue.email, 'Not assigned')
+      : firstValue(leadValue, 'Not assigned');
+    const scopeText = firstValue(
+      p?.scope, p?.Scope, p?.agreedScope, p?.AgreedScope,
+      p?.projectScope, p?.ProjectScope, p?.description, p?.Description,
+      p?.scopeDescription, p?.ScopeDescription
+    );
+    const scopeItems = firstValue(p?.scopeItems, p?.ScopeItems, p?.deliverables, p?.Deliverables);
     const rawMilestones = Array.isArray(p?.milestones) ? p.milestones : [];
     const completedMilestones = rawMilestones.filter(m => ['done','completed','approved'].includes(String(m.status || '').toLowerCase())).length;
     const apiProgress = p?.progressPercentage ?? p?.ProgressPercentage ?? p?.progress ?? p?.completionPercentage;
@@ -119,7 +144,10 @@
     setText('#portal-detail-lead',lead); setText('#portal-detail-phase',p?.phase || p?.status || 'Not available');
     const status=$('#portal-project-status'); if(status)status.textContent=p?.status || 'No project linked';
     const scope=$('#portal-scope-list');
-    if(scope) scope.innerHTML = p && Array.isArray(p.scopeItems) && p.scopeItems.length ? p.scopeItems.map(item=>`<li>${esc(typeof item==='string'?item:item.title||item.description||'')}</li>`).join('') : `<li>${p?.scope?esc(p.scope):'Project scope has not been published.'}</li>`;
+    const publishedScopeItems = Array.isArray(scopeItems) ? scopeItems : [];
+    if(scope) scope.innerHTML = p && publishedScopeItems.length
+      ? publishedScopeItems.map(item=>`<li>${esc(typeof item==='string'?item:item.title||item.Title||item.description||item.Description||'')}</li>`).join('')
+      : `<li>${p && scopeText ? esc(scopeText) : 'Project scope has not been published.'}</li>`;
     const emptyNote=!p;
     if(emptyNote) {
       ['#overview-milestone-track','#full-milestone-track'].forEach(sel=>setEmpty(sel,'No application is linked to this client account yet.'));
