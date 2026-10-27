@@ -302,6 +302,65 @@
     }
   }
 
+  const profileModal = $('#profile-modal');
+  const profileForm = $('#profile-form');
+  const profileFeedback = $('#profile-feedback');
+  const profileFields = ['fullName','jobTitle','department','companyRole','email','alternateEmail','phone','mobile','preferredContact','linkedin','companyName','industry','companyWebsite','companyEmail','companyPhone','companySize','registrationNumber','vatNumber','address','city','province','postalCode','country'];
+  const profileAliases = {
+    fullName:['fullName','name','contactName'], jobTitle:['jobTitle'], department:['department'], companyRole:['companyRole'],
+    email:['email'], alternateEmail:['alternateEmail'], phone:['phone'], mobile:['mobile'], preferredContact:['preferredContact'], linkedin:['linkedin','linkedIn'],
+    companyName:['companyName','organizationName','company','clientName'], industry:['industry'], companyWebsite:['companyWebsite','website'],
+    companyEmail:['companyEmail'], companyPhone:['companyPhone'], companySize:['companySize'], registrationNumber:['registrationNumber'],
+    vatNumber:['vatNumber'], address:['address','streetAddress'], city:['city'], province:['province','state'], postalCode:['postalCode'], country:['country']
+  };
+  const profileValue = (user, field) => {
+    const sources = [user, user?.contact, user?.clientContact, user?.client, user?.company, user?.organization];
+    for (const source of sources) for (const key of (profileAliases[field] || [field])) if (source?.[key] !== undefined && source?.[key] !== null) return source[key];
+    return '';
+  };
+  function openProfile() {
+    if (!profileModal || !profileForm) return;
+    const user = state.user || {};
+    profileFields.forEach(field => { const input = profileForm.elements.namedItem(field); if (input) input.value = String(profileValue(user, field) ?? ''); });
+    if (profileFeedback) { profileFeedback.textContent = ''; profileFeedback.className = 'form-feedback'; }
+    profileModal.hidden = false;
+    document.body.classList.add('modal-open');
+    $('#profile-form input[name="fullName"]')?.focus();
+  }
+  function closeProfile() { if (profileModal) profileModal.hidden = true; document.body.classList.remove('modal-open'); }
+  $('#client-menu')?.addEventListener('click', openProfile);
+  $('#profile-open-top')?.addEventListener('click', openProfile);
+  $('.portal-user')?.addEventListener('dblclick', openProfile);
+  $('#close-profile')?.addEventListener('click', closeProfile);
+  $('#cancel-profile')?.addEventListener('click', closeProfile);
+  profileModal?.addEventListener('click', event => { if (event.target === profileModal) closeProfile(); });
+  profileForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = $('#save-profile');
+    const payload = {};
+    profileFields.forEach(field => { const input = profileForm.elements.namedItem(field); if (input) payload[field] = input.value.trim(); });
+    if (payload.linkedin && !/^https:\/\//i.test(payload.linkedin)) { profileFeedback.textContent = 'Enter a valid HTTPS LinkedIn URL.'; profileFeedback.className = 'form-feedback error'; return; }
+    if (payload.companyWebsite && !/^https:\/\//i.test(payload.companyWebsite)) { profileFeedback.textContent = 'Enter the company website starting with https://.'; profileFeedback.className = 'form-feedback error'; return; }
+    submit.disabled = true; submit.textContent = 'Saving…';
+    profileFeedback.textContent = 'Saving your changes…'; profileFeedback.className = 'form-feedback';
+    try {
+      // The API must update only the authenticated client's linked contact and company record.
+      const result = await api('/portal/profile', { method: 'PATCH', body: JSON.stringify(payload) });
+      const updated = result?.profile || result?.user || result?.contact || result || {};
+      state.user = { ...state.user, ...payload, ...updated };
+      hydrateUser(state.user);
+      profileFeedback.textContent = 'Your client information has been updated.'; profileFeedback.className = 'form-feedback success';
+      message('Your client information was updated.');
+      window.setTimeout(closeProfile, 900);
+    } catch (error) {
+      profileFeedback.textContent = error.status === 404 || error.status === 405
+        ? 'Profile editing is ready in the portal, but the deployed API does not yet support PATCH /portal/profile. Add the authenticated endpoint before clients can save changes.'
+        : (error.message || 'Your changes could not be saved. Please try again.');
+      profileFeedback.className = 'form-feedback error';
+    } finally { submit.disabled = false; submit.textContent = 'Save changes'; }
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && profileModal && !profileModal.hidden) closeProfile(); });
+
   // Company logo upload is stored locally in this browser until a server-side
   // client-profile logo endpoint is available. Scope it to the signed-in client/project.
   const logoInput = $('#client-logo-upload');
@@ -394,11 +453,6 @@
   $('#ticket-filter')?.addEventListener('change',renderTickets); $('#update-filter')?.addEventListener('change',renderUpdates);
   // Support-ticket persistence is not implemented in the current API.
   // The request form is intentionally not submitted until the endpoint exists.
-  $('#client-menu')?.addEventListener('click',async()=>{
-    sessionStorage.removeItem('zyma_portal_access_token');
-    sessionStorage.removeItem('zyma_portal_user');
-    window.location.href='client-login.html';
-  });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && state.project?.id) loadProjectDetails(state.project.id).catch(() => {});
   });

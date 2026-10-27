@@ -43,3 +43,11 @@ The deployed CRM API exposes client invitation redemption at:
 The activation page's `client-auth.js` must use `/client-invitations/accept` relative to the configured API base (`https://api.zyma.co.za/api/crm`). The older `/invitations/accept` path does not match the API controller route.
 
 The activation email must match the email address stored on the CRM client record and invitation. Each activated account is linked to the invitation's `ClientId`; the portal must load project data from the authenticated `/portal/projects` API and must not use a hardcoded demo client or client ID.
+
+
+## Client profile editing (required API work)
+The portal profile editor reads the authenticated identity from `GET /portal/me` and submits editable contact/company fields to `PATCH /api/crm/portal/profile`. The backend must resolve the client and primary contact from the authenticated user/session; it must never accept a client ID or contact ID from the browser as authorization. Update the linked CRM contact and client organization transactionally, validate email/URL/phone lengths, enforce field-level allowlists, audit the change, and return the updated safe profile. Do not allow changes to account role, login email identity unless a verified email-change flow exists, internal notes, relationship ownership, client IDs, project assignments, or staff-only fields. The frontend displays a clear API-unavailable message if the endpoint is not implemented; a browser-only save is deliberately not used because it would not update the CRM source of truth.
+
+Suggested response shape: `{ "profile": { "fullName", "jobTitle", "department", "companyRole", "email", "alternateEmail", "phone", "mobile", "preferredContact", "linkedin", "companyName", "industry", "companyWebsite", "companyEmail", "companyPhone", "companySize", "registrationNumber", "vatNumber", "address", "city", "province", "postalCode", "country" } }`. `GET /portal/me` should return the same editable fields for pre-filling the profile form.
+
+Project summary fields expected by the portal: `code`/`reference`, `scope` and/or `scopeItems`, `managerName`/`projectLead`, `startDate`, `targetDate`, `status`/`phase`. These should be returned only for projects linked to the authenticated client's organization.
