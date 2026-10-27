@@ -83,8 +83,8 @@
     const resolved = tickets.length-open;
     [['#nav-ticket-count',open],['#open-ticket-stat',open],['#all-ticket-count',tickets.length],['#open-ticket-count',open],['#resolved-ticket-count',resolved]].forEach(([sel,val])=>{const el=$(sel);if(el)el.textContent=String(val);});
     const note=$('#support-stat-note'); if(note) note.textContent=open?`${open} open request${open===1?'':'s'}`:'No open requests';
-    const statusClass = status => ['Resolved','Closed'].includes(status)?'status-resolved':status==='In progress'?'status-progress':'status-open';
-    const render = t => `<article class="ticket-row"><span class="ticket-symbol">${String(t.type||'').toLowerCase().includes('error')?'!':String(t.type||'').toLowerCase().includes('maintenance')?'⚙':'?'}</span><div class="ticket-main"><strong>${esc(t.subject)}</strong><div class="ticket-meta"><span>${esc(t.reference || t.id || 'Request')}</span><span>${esc(formatDate(t.createdAt || t.created))}</span><span>${esc(t.type || 'Support')}</span></div>${t.response || t.reply ? `<p class="ticket-reply">${esc(t.response || t.reply)}</p>`:''}</div><div class="ticket-right"><span class="status-chip ${statusClass(t.status)}">${esc(t.status || 'Open')}</span><span class="priority-chip">${esc(t.priority || 'Normal')} priority</span></div></article>`;
+    const statusClass = status => ['Resolved','Closed'].includes(status)?'status-resolved':['InProgress','In progress','AwaitingClient'].includes(status)?'status-progress':'status-open';
+    const render = t => `<article class="ticket-row"><span class="ticket-symbol">${String(t.category||t.type||'').toLowerCase().includes('error')?'!':String(t.category||t.type||'').toLowerCase().includes('maintenance')?'⚙':'?'}</span><div class="ticket-main"><strong>${esc(t.subject)}</strong><div class="ticket-meta"><span>${esc(t.ticketReference || t.reference || t.id || 'Request')}</span><span>${esc(formatDate(t.createdAtUtc || t.createdAt || t.created))}</span><span>${esc(t.category || t.type || 'General')}</span></div>${t.lastReply || t.response || t.reply ? `<p class="ticket-reply">${esc(t.lastReply || t.response || t.reply)}</p>`:''}</div><div class="ticket-right"><span class="status-chip ${statusClass(t.status)}">${esc(({InProgress:'In progress',AwaitingClient:'Awaiting client'}[t.status] || t.status || 'Open'))}</span><span class="priority-chip">${esc(t.priority || 'Normal')} priority</span><button class="outline-button ticket-view-button" type="button" data-view-ticket="${esc(t.id)}">View</button></div></article>`;
     const recent = $('#overview-ticket-list'); if(recent) recent.innerHTML=tickets.length?tickets.slice().reverse().slice(0,2).map(render).join(''):'<div class="empty-state">No support requests have been submitted.</div>';
     const filter=$('#ticket-filter')?.value||'all';
     const filtered=tickets.slice().reverse().filter(t=>filter==='all'||(filter==='open'?openStatus(t.status):!openStatus(t.status)));
@@ -311,8 +311,7 @@
       hydrateUser(user);
       const projectResult = await api('/portal/projects');
       state.projects = Array.isArray(projectResult) ? projectResult : (projectResult.projects || projectResult.items || []);
-      // Support-ticket persistence remains a separate backend task.
-      state.tickets = [];
+      await loadSupportTickets({ silent: true });
       const selectorWrap = $('#project-selector-wrap');
       const selector = $('#portal-project-selector');
       if (selector && selectorWrap) {
@@ -475,12 +474,70 @@
     if (portalSidebar?.classList.contains('mobile-nav-open') && !portalSidebar.contains(event.target)) setMobileNavOpen(false);
   });
   window.matchMedia('(min-width: 761px)').addEventListener?.('change', event => { if (event.matches) setMobileNavOpen(false); });
-  $$('[data-open-request]').forEach(button=>button.addEventListener('click',()=>{
-    message('Support requests are not connected to the API yet. Please contact your Zyma representative.');
-  }));
+  const requestModal = $('#request-modal');
+  const requestForm = $('#request-form');
+  const requestFeedback = $('#request-feedback');
+  const closeRequestModal = () => { if (requestModal) requestModal.hidden = true; };
+  const openRequestModal = () => {
+    if (!state.project?.id) { message('There is no project assigned to this client account yet. Please contact your Zyma representative.'); return; }
+    if (requestFeedback) requestFeedback.textContent = '';
+    if (requestModal) requestModal.hidden = false;
+    requestForm?.querySelector('[name="subject"]')?.focus();
+  };
+  $$('[data-open-request]').forEach(button=>button.addEventListener('click',openRequestModal));
+  $('#close-request')?.addEventListener('click',closeRequestModal);
+  $('#cancel-request')?.addEventListener('click',closeRequestModal);
+  requestModal?.addEventListener('click', event => { if (event.target === requestModal) closeRequestModal(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && requestModal && !requestModal.hidden) closeRequestModal(); });
+  async function loadSupportTickets({ silent = false } = {}) {
+    try {
+      const result = await api('/portal/support');
+      state.tickets = Array.isArray(result) ? result : (result?.tickets || result?.items || []);
+      renderTickets();
+    } catch (error) {
+      if (!silent) message(error.message || 'Could not load support requests.');
+      console.error('Could not load support requests:', error);
+    }
+  }
+  requestForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!state.project?.id) { if (requestFeedback) requestFeedback.textContent = 'No project is assigned to this account.'; return; }
+    const formData = new FormData(requestForm);
+    const subject = String(formData.get('subject') || '').trim();
+    const description = String(formData.get('description') || '').trim();
+    const typeLabel = String(formData.get('type') || 'General');
+    const categoryMap = { 'Error / bug report': 'Bug', 'Technical assistance': 'Technical', 'Maintenance request': 'Technical', 'Change or enhancement': 'Feature', 'General question': 'General' };
+    const category = categoryMap[typeLabel] || 'General';
+    const location = String(formData.get('location') || '').trim();
+    const priority = String(formData.get('priority') || 'Normal');
+    if (!subject || !description) { if (requestFeedback) requestFeedback.textContent = 'Enter a subject and describe the issue before submitting.'; return; }
+    const submit = requestForm.querySelector('[type="submit"]');
+    if (submit) { submit.disabled = true; submit.textContent = 'Submitting…'; }
+    if (requestFeedback) requestFeedback.textContent = 'Submitting your request securely…';
+    const fullDescription = location ? `Affected page/feature: ${location}\n\n${description}` : description;
+    try {
+      await api('/portal/support', { method: 'POST', body: JSON.stringify({ projectId: state.project.id, subject, description: fullDescription, category, priority }) });
+      requestForm.reset(); closeRequestModal();
+      message('Support request submitted successfully.');
+      await loadSupportTickets({ silent: true });
+      showSection('support');
+    } catch (error) {
+      if (requestFeedback) requestFeedback.textContent = error.message || 'Your request could not be submitted. Please try again.';
+    } finally {
+      if (submit) { submit.disabled = false; submit.textContent = 'Submit request ↗'; }
+    }
+  });
+  $('#full-ticket-list')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-view-ticket]');
+    if (!button) return;
+    try {
+      const ticket = await api(`/portal/support/${encodeURIComponent(button.dataset.viewTicket)}`);
+      const replies = Array.isArray(ticket.replies) ? ticket.replies : [];
+      const lines = replies.map(reply => `${reply.authorRole === 'Client' ? 'You' : 'Zyma'} · ${formatDate(reply.createdAtUtc)}\n${reply.body}`).join('\n\n');
+      message(`${ticket.ticketReference || 'Request'}${ticket.status ? ` · ${ticket.status}` : ''}${lines ? `\n${lines}` : ''}`);
+    } catch (error) { message(error.message || 'Could not open this request.'); }
+  });
   $('#ticket-filter')?.addEventListener('change',renderTickets); $('#update-filter')?.addEventListener('change',renderUpdates);
-  // Support-ticket persistence is not implemented in the current API.
-  // The request form is intentionally not submitted until the endpoint exists.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && state.project?.id) loadProjectDetails(state.project.id).catch(() => {});
   });
